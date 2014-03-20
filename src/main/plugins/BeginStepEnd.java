@@ -92,6 +92,6 @@ public class BeginStepEnd implements GeneratorParameters {
 		} else{
 			throw new ClassCastException("Параметр \"step\" имеет неверный тип");
 		}		
-		//Hello
+		
 	}
 }

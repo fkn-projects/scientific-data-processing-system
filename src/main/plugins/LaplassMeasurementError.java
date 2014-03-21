@@ -2,7 +2,10 @@ package plugins;
 
 
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
+
+import cern.jet.random.Distributions;
 
 public class LaplassMeasurementError implements MeasurementError {
 
@@ -10,28 +13,25 @@ public class LaplassMeasurementError implements MeasurementError {
 	private Map<String, String> parameters = new TreeMap<String, String>();
 	
 	//добавить объявление параметров распределения
-	
+	private double alpha;//coefficient mashtaba
+	private double beta;//coefficient sdviga
 	
 	
 	public LaplassMeasurementError() {
 		this.errorName = "Laplass Error";
-	
-		//это список тестовых параметров. Их нужно заменить на настоящие
-		this.parameters.put("Sigma", "double");
 		this.parameters.put("Alpha", "double");
 		this.parameters.put("Beta", "double");
-		this.parameters.put("Ksi", "double");
-		this.parameters.put("Lambda", "double");
-		this.parameters.put("Teta", "double");
+		
 	}
 	
 	
 	@Override
 	public boolean checkParameters() {
-		// TODO Auto-generated method stub
-		// в этом методе параметры распределения должны проходить проверку
-		
-		return false;
+		boolean valid = true;
+		if(this.alpha < 0){
+			valid =  false;
+		}
+		return valid;
 	}
 
 	@Override
@@ -41,12 +41,35 @@ public class LaplassMeasurementError implements MeasurementError {
 
 	@Override
 	public double getMeasurementError() {
-		// TODO Auto-generated method stub
-		// этот метод возвращает сл. величину, распределенную по закону Лапласса 
+		cern.jet.random.engine.RandomEngine generator;
+		generator = new cern.jet.random.engine.MersenneTwister(new java.util.Date());
+		// I'm not sure about this
+		return alpha + (beta - alpha)*Distributions.nextLaplace(generator);  
+	}	 
 		
-		return 0;
+		
+		/*
+		double y;
+		double x = Math.random();
+		y = (alpha/2)*Math.exp((-alpha)*(x-beta));
+		double sv;
+		double a = -5, b = 5;
+		
+		
+		while(n < y){
+			y = f(x); // формулу подставить
+			}
+			return n; // n - это сл.в. 
+			y=f(x), где f(x) - твой закон распределения
+					 
+					т.е. генерируешь число, потом сравниваешь его с y, если число < y оно попало под график
+					то это число сгенерировано по твоему закону
+					
+	 
+		 
+		return sv;
 	}
-
+*/
 	@Override
 	public String getErrorName() {
 		return this.errorName;
@@ -55,9 +78,22 @@ public class LaplassMeasurementError implements MeasurementError {
 
 	@Override
 	public void setParameters(Map<String, ? extends Object> parameters) {
-		// TODO Auto-generated method stub
-		// тут параметры класса должны инициализироваться значениями, которые "пришли" в коллекции parameters
-		// см. реализацию класса BeginStepEnd
+		 
+		Object tempObject = parameters.get("Alpha");
+		if (tempObject instanceof Double){
+			this.alpha = (Double)parameters.get("Alpha");
+		} else{
+			throw new ClassCastException("Параметр \"Alpha\" имеет неверный тип");
+		}
+		
+		tempObject = parameters.get("Beta");
+		if (tempObject instanceof Double){
+			this.beta = (Double) parameters.get("Beta");
+		} else{
+			throw new ClassCastException("Параметр \"Beta\" имеет неверный тип");
+		}
+		
+		 
 	}
 
 }

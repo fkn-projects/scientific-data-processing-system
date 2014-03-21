@@ -15,6 +15,10 @@ import plugins.GeneratorParameters;
 import plugins.MeasurementError;
 
 public class ReflectionObject {
+	
+	DataGenerationFunction function = null;
+	MeasurementError error = null;
+	GeneratorParameters generatorParameters = null;
 
 	private Map<String, String> pluginClassNames = new HashMap<>();
 	
@@ -106,9 +110,9 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			DataGenerationFunction function = (DataGenerationFunction) clazz.newInstance();
+			this.function = (DataGenerationFunction) clazz.newInstance();
 			
-			functionFields = function.getFunctionParameters();
+			functionFields = this.function.getFunctionParameters();
 		}
 		
 		return functionFields;
@@ -125,9 +129,9 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			MeasurementError error = (MeasurementError) clazz.newInstance();
+			this.error = (MeasurementError) clazz.newInstance();
 			
-			errorFields = error.getParametersForRendering();
+			errorFields = this.error.getParametersForRendering();
 		}
 		
 		return errorFields;
@@ -142,12 +146,27 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			GeneratorParameters generatorParameters = (GeneratorParameters) clazz.newInstance();
+			this.generatorParameters = (GeneratorParameters) clazz.newInstance();
 			
-			genParamsFields = generatorParameters.getParametersForRendering();
+			genParamsFields = this.generatorParameters.getParametersForRendering();
 		}
 		
 		return genParamsFields;
 	}
 
+	public DataGenerationFunction getFunctionInstance(Map<String, ? extends Object> parameters){
+		this.function.setParameters(parameters);
+		return this.function;
+	}
+	
+	public MeasurementError getMeasurementErrorInstance(Map<String, ? extends Object> parameters){
+		this.error.setParameters(parameters);
+		return this.error;
+	}
+	
+	public GeneratorParameters getGeneratorParametersInstance(Map<String, ? extends Object> parameters){
+		this.generatorParameters.setParameters(parameters);
+		return this.generatorParameters;
+	}
+	
 }

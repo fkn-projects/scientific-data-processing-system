@@ -6,15 +6,16 @@ import java.awt.EventQueue;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.UIManager;
-
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.LineBorder;
+
 import java.awt.Color;
 
 import javax.swing.JTable;
@@ -24,10 +25,16 @@ import java.awt.SystemColor;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Font;
+
 import javax.swing.JButton;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+
+import plugins.DataGenerationFunction;
+import plugins.GeneratorParameters;
+import plugins.MeasurementError;
+
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -53,6 +60,7 @@ public class Main {
 	private JScrollPane scrollPaneErr;
 	private JScrollPane scrollPaneGen;
 	
+	private JButton btnGenerateData;
 	
 	private JPanel panel;
 	
@@ -111,7 +119,9 @@ public class Main {
 		errorsComboBox.setBounds(7, 180, 136, 20);
 		panel.add(errorsComboBox);
 		
-		JButton btnGenerateData = new JButton("Generate Data");
+		btnGenerateData = new JButton("Generate Data");
+		
+		
 		btnGenerateData.setFont(new Font("Tahoma", Font.BOLD, 11));
 		btnGenerateData.setBounds(7, 473, 136, 23);
 		panel.add(btnGenerateData);
@@ -571,5 +581,54 @@ public class Main {
 				}
 			}
 		});
+		
+		
+		
+		
+		//обработчик кнопки Generate
+		btnGenerateData.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			
+				generateDataHandler();
+			}
+		});
 	}
+	
+	
+	
+	private void generateDataHandler(){
+		
+		//получаем объект функции-генеретора
+		Map<String, Object> functionParameters = new TreeMap<String, Object>();
+		for (int count = 0; count < functionParametersTable.getModel().getRowCount(); count++) {
+			functionParameters.put((String) functionParametersTable.getModel().getValueAt(count, 0), 
+									functionParametersTable.getModel().getValueAt(count, 1));
+		}		
+		DataGenerationFunction dataGenerationFunction = reflection.getFunctionInstance(functionParameters);
+		
+		//получаем объект погрешности
+		Map<String, Object> errorParameters = new TreeMap<String, Object>();
+		for (int count = 0; count < errorParametersTable.getModel().getRowCount(); count++) {
+			errorParameters.put((String) errorParametersTable.getModel().getValueAt(count, 0), 
+									errorParametersTable.getModel().getValueAt(count, 1));
+		}		
+		MeasurementError measurementError = reflection.getMeasurementErrorInstance(errorParameters);
+		
+		//получаем объект параметров генератора
+		Map<String, Object> genParameters = new TreeMap<String, Object>();
+		for (int count = 0; count < genParametersTable.getModel().getRowCount(); count++) {
+			errorParameters.put((String) genParametersTable.getModel().getValueAt(count, 0), 
+								genParametersTable.getModel().getValueAt(count, 1));
+		}			
+		GeneratorParameters generatorParameters =  reflection.getGeneratorParametersInstance(genParameters);
+		
+		
+		
+		
+	}
+	
+	
+	
+	
 }

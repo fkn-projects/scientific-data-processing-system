@@ -1,6 +1,5 @@
 package plugins;
 
-
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
@@ -12,7 +11,7 @@ public class LaplassMeasurementError implements MeasurementError {
 	private String errorName;
 	private Map<String, String> parameters = new TreeMap<String, String>();
 	
-	//добавить объявление параметров распределения
+	//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	private double alpha;//coefficient mashtaba
 	private double beta;//coefficient sdviga
 	
@@ -57,13 +56,13 @@ public class LaplassMeasurementError implements MeasurementError {
 		
 		
 		while(n < y){
-			y = f(x); // формулу подставить
+			y = f(x); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 			}
-			return n; // n - это сл.в. 
-			y=f(x), где f(x) - твой закон распределения
+			return n; // n - пїЅпїЅпїЅ пїЅпїЅ.пїЅ. 
+			y=f(x), пїЅпїЅпїЅ f(x) - пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 					 
-					т.е. генерируешь число, потом сравниваешь его с y, если число < y оно попало под график
-					то это число сгенерировано по твоему закону
+					пїЅ.пїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ y, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ < y пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+					пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 					
 	 
 		 
@@ -83,14 +82,14 @@ public class LaplassMeasurementError implements MeasurementError {
 		if (tempObject instanceof Double){
 			this.alpha = (Double)parameters.get("Alpha");
 		} else{
-			throw new ClassCastException("Параметр \"Alpha\" имеет неверный тип");
+			throw new ClassCastException("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ \"Alpha\" пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ");
 		}
 		
 		tempObject = parameters.get("Beta");
 		if (tempObject instanceof Double){
 			this.beta = (Double) parameters.get("Beta");
 		} else{
-			throw new ClassCastException("Параметр \"Beta\" имеет неверный тип");
+			throw new ClassCastException("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ \"Beta\" пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ");
 		}
 		
 		 

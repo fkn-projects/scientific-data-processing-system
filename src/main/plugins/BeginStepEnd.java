@@ -25,6 +25,7 @@ public class BeginStepEnd implements GeneratorParameters {
 	@Override
 	public boolean checkParameters() {
 
+				
 		boolean valid = true;
 		
 		if(this.begin >= this.end){
@@ -51,18 +52,29 @@ public class BeginStepEnd implements GeneratorParameters {
 		return parametersNames;
 	}
 
+	
+	@Override
+	public boolean hasNextX() {
+	
+		if(this.begin <= this.end){
+			return true;
+		} else {		
+			return false;
+		}
+	}
+	
+	
 	@Override
 	public double getNextX() {
 
-		if(this.begin <= this.end){
-
-			double x = this.begin;
-			this.begin += this.step;
-			return x;
-		}
-		return -1;
+		double x = this.begin;
+		this.begin = this.begin + this.step;
+		return x;
 	}
 
+	
+	
+	
 	@Override
 	public String getGeneratorParametersName() {
 		
@@ -73,7 +85,10 @@ public class BeginStepEnd implements GeneratorParameters {
 	public void setParameters(Map<String, ? extends Object> parameters) {
 		
 		Object tempObject = parameters.get("begin");
-		if (tempObject instanceof Double){
+		
+		System.out.println(parameters);
+		
+		if (tempObject instanceof Double ){
 			this.begin = (Double) parameters.get("begin");
 		} else{
 			throw new ClassCastException("Параметр \"begin\" имеет неверный тип");
@@ -88,13 +103,11 @@ public class BeginStepEnd implements GeneratorParameters {
 		
 		tempObject = parameters.get("step");
 		if (tempObject instanceof Double){
-			this.step = (Double) parameters.get("begin");
+			this.step = (Double) parameters.get("step");
 		} else{
 			throw new ClassCastException("Параметр \"step\" имеет неверный тип");
 		}		
 		
 	}
-	
-	
 	
 }

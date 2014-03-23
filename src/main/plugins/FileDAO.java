@@ -1,9 +1,9 @@
-package hnu.fkn.project.DAO;
+package plugins;
 
 import java.io.File;
 import java.util.Map;
 
-public interface DAO {
+public interface FileDAO extends Parametrable {
 	    //Map<Number, Number> data - набор данных, полученных с генератора <x, f(x)>
 		void saveData(Map<Number, Number> data, String path);
 		
@@ -13,4 +13,7 @@ public interface DAO {
 		Map<Number, Number> getData(File dataFile);
 		
 		Map<String, Object> getParemeters(File parametersFile);	
+
+		String getFileFormatName();
+		
 }

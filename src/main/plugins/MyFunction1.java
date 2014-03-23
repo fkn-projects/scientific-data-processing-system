@@ -33,8 +33,9 @@ public class MyFunction1 implements DataGenerationFunction{
 
 	@Override
 	public double getValue(double x) {
-		// TODO Auto-generated method stub
-		return 0;
+
+		double y = Math.cos(x/5)*10 + Math.cos(x)*2;
+		return y;
 	}
 
 	@Override

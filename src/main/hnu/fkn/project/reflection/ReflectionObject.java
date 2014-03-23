@@ -9,8 +9,10 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import plugins.DataGenerationFunction;
+import plugins.FileDAO;
 import plugins.GeneratorParameters;
 import plugins.MeasurementError;
 
@@ -19,13 +21,18 @@ public class ReflectionObject {
 	DataGenerationFunction function = null;
 	MeasurementError error = null;
 	GeneratorParameters generatorParameters = null;
+	FileDAO dao = null;
 
 	private Map<String, String> pluginClassNames = new HashMap<>();
 	
 	public Map<String, List<String>> loadPluginsNames() 
 			throws ClassNotFoundException, InstantiationException, IllegalAccessException, FileNotFoundException {
 
-		File pluginFolder = new File(System.getProperty("java.class.path") + ApplicationConfiguration.getItem("plugin.folder"));
+
+		
+		String[] classPathes = System.getProperty("java.class.path").split(";");
+		
+		File pluginFolder = new File(classPathes[0] + ApplicationConfiguration.getItem("plugin.folder"));
 		File[] files = pluginFolder.listFiles();
 
 		if (files == null || files.length == 0){
@@ -36,6 +43,7 @@ public class ReflectionObject {
 		List<String> functionsNames = new ArrayList<>();
 		List<String> errorsNames = new ArrayList<>();
 		List<String> paramNames = new ArrayList<>();
+		List<String> fileFormatNames = new ArrayList<>();
 
 		
 		for (File file : files) {
@@ -48,6 +56,7 @@ public class ReflectionObject {
 			boolean isMeasurenemtErrorPlugin = false;
 			boolean isDataGenerationFunctionPlugin = false;
 			boolean isGeneratorParametersPlugin = false;
+			boolean isFileFormatPlugin = false;
 			
 			for (Class interfase : interfaces) {
 				if (interfase.getCanonicalName() == "plugins.MeasurementError") {
@@ -61,6 +70,11 @@ public class ReflectionObject {
 				if(interfase.getCanonicalName() == "plugins.GeneratorParameters"){
 					isGeneratorParametersPlugin = true;
 				}
+				
+				if(interfase.getCanonicalName() == "plugins.FileDAO"){
+					isFileFormatPlugin = true;
+				}
+				
 			}
 
 			try {
@@ -85,6 +99,15 @@ public class ReflectionObject {
 					
 					pluginClassNames.put(generatorParameters.getGeneratorParametersName(),clazz.getCanonicalName());
 				}
+				
+				if (isFileFormatPlugin  == true && !clazz.isInterface()) {
+					FileDAO fileDao = (FileDAO) clazz.newInstance();
+					fileFormatNames.add(fileDao.getFileFormatName());
+					
+					pluginClassNames.put(fileDao.getFileFormatName(), clazz.getCanonicalName());
+				}
+				
+				
 
 			} catch (ClassCastException e) {
 				throw new ClassCastException("Не удалось подключить плагин. Плагин некорректно спроектирован");
@@ -95,6 +118,7 @@ public class ReflectionObject {
 		pluginsNames.put("functions", functionsNames);
 		pluginsNames.put("errors", errorsNames);
 		pluginsNames.put("genParameters", paramNames);
+		pluginsNames.put("fileFormats", fileFormatNames);
 		
 		return pluginsNames;
 	}
@@ -140,7 +164,7 @@ public class ReflectionObject {
 	public Map<String, String> loadGeneratorParamsFields(String genParamsName) 
 			throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 		
-		Map<String, String> genParamsFields = new Hashtable<>();
+		Map<String, String> genParamsFields = new TreeMap();
 		if (pluginClassNames.containsKey(genParamsName)){
 			String canonicalClassName = pluginClassNames.get(genParamsName);
 					
@@ -153,6 +177,27 @@ public class ReflectionObject {
 		
 		return genParamsFields;
 	}
+	
+	
+	
+	public Map<String, String> loadSaveParametersFields(String fileFormatName) 
+			throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+		
+		Map<String, String> saveParamsFields = new TreeMap<>();
+		if (pluginClassNames.containsKey(fileFormatName)){
+			String canonicalClassName = pluginClassNames.get(fileFormatName);
+					
+			Class clazz = Class.forName(canonicalClassName);
+			
+			this.dao = (FileDAO) clazz.newInstance();
+			
+			saveParamsFields = this.dao.getParametersForRendering();
+		}
+		
+		return saveParamsFields;
+	}
+	
+	
 
 	public DataGenerationFunction getFunctionInstance(Map<String, ? extends Object> parameters){
 		this.function.setParameters(parameters);
@@ -168,5 +213,11 @@ public class ReflectionObject {
 		this.generatorParameters.setParameters(parameters);
 		return this.generatorParameters;
 	}
+	
+	public FileDAO getFileDAOInstance(Map<String, ? extends Object> parameters){
+		this.dao.setParameters(parameters);
+		return this.dao;
+	}
+	
 	
 }

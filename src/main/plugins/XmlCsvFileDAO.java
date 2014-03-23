@@ -1,4 +1,4 @@
-package hnu.fkn.project.DAO.impl;
+package plugins;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -10,12 +10,16 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import hnu.fkn.project.DAO.DAO;
+public class XmlCsvFileDAO implements FileDAO {
 
-public class DataFileDao implements DAO {
-
+	private String fileFormatName = "XML-CSV format";
+	
+	private String csvDataSeparator;
+	private String isHeader;
+	
 	@Override
 	public void saveData(Map<Number, Number> data, String path) {	
 		BufferedWriter out;
@@ -26,7 +30,7 @@ public class DataFileDao implements DAO {
 			Iterator<Entry<Number, Number>> it = data.entrySet().iterator();
 			while (it.hasNext() && count < data.size()) {
 				 Entry<Number, Number> pairs = it.next(); 
-				 out.write(pairs.getKey() + " ");
+				 out.write(pairs.getKey() + this.csvDataSeparator);
 				 out.write(pairs.getValue() + "\n");
 				 count++;
 			 }
@@ -42,7 +46,7 @@ public class DataFileDao implements DAO {
 	public void saveParameters(Map<String, Object> parameters, String path) {
 		BufferedWriter out;
 		try {
-			FileWriter fstream = new FileWriter(path + "values2.xml");
+			FileWriter fstream = new FileWriter(path + "parameters.xml");
 			out = new BufferedWriter(fstream);
 			int count = 0;
 			Iterator<Entry<String, Object>> it = parameters.entrySet().iterator();
@@ -106,6 +110,37 @@ public class DataFileDao implements DAO {
 			e.printStackTrace();
 		}
 		return result;
+	}
+
+	
+	
+	@Override
+	public void setParameters(Map<String, ? extends Object> parameters) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean checkParameters() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Map<String, String> getParametersForRendering() {
+
+		Map<String, String> parametersNames = new TreeMap<String, String>();
+		
+		parametersNames.put("CSV separator", "String");
+		parametersNames.put("is header present", "String");
+	
+
+		return parametersNames;
+	}
+
+	@Override
+	public String getFileFormatName() {
+		return fileFormatName;
 	}
 
 }

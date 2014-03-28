@@ -8,5 +8,5 @@ public interface DataGenerationFunction extends Parametrable {
 		
 		String getFunctionName();
 
-		Map<String, String> getFunctionParameters();
+		Map<String, String> getFunctionParametersForSave();
 }

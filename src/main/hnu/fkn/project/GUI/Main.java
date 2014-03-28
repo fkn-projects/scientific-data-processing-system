@@ -5,14 +5,18 @@ import hnu.fkn.project.reflection.ReflectionObject;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
-import java.awt.Shape;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import javax.swing.DefaultCellEditor;
+import javax.annotation.processing.FilerException;
+import javax.swing.CellEditor;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.UIManager;
@@ -20,6 +24,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.LineBorder;
+import javax.swing.filechooser.FileFilter;
 
 import java.awt.Color;
 
@@ -37,52 +42,39 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.Legend;
-import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.category.AreaRenderer;
-import org.jfree.chart.renderer.category.BoxAndWhiskerRenderer;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
-import org.jfree.chart.renderer.category.DefaultCategoryItemRenderer;
-import org.jfree.chart.renderer.category.LevelRenderer;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
-import org.jfree.chart.renderer.category.LineRenderer3D;
-import org.jfree.chart.renderer.xy.StandardXYItemRenderer;
-import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.DatasetGroup;
-import org.jfree.data.xy.IntervalXYDataset;
-import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.DataGenerationFunction;
+import plugins.FileDAO;
 import plugins.GeneratorParameters;
 import plugins.MeasurementError;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Ellipse2D;
 
 public class Main {
 
 	private JFrame frame;
 	private JComboBox functionsComboBox;
-	private JComboBox errorsComboBox;
+	private JComboBox errorsComboBox; 
 	private JComboBox genParamsComboBox;
-	private JComboBox fileFormatComboBox;
+	private JComboBox saveFileFormatComboBox;
+	private JComboBox openFileFormatComboBox;
 	
 	private ReflectionObject reflection;
+	private DataGenerator dataGenerator;
 	
 	private JTable functionParametersTable;
 	private JTable errorParametersTable;
 	private JTable genParametersTable; 
 	private JTable saveParametersTable;
-	
 	
 	private JLabel lblFunctionParameters;
 	private JLabel lblErrorParameters;
@@ -111,7 +103,7 @@ public class Main {
 					Main window = new Main();
 					window.frame.setVisible(true);
 				} catch (Exception e) {
-					e.printStackTrace();
+					//System.out.println(e.getMessage());
 				}
 			}
 		});
@@ -123,6 +115,7 @@ public class Main {
 
 	private void initialize() {
 		frame = new JFrame();
+		frame.setResizable(false);
 		frame.setBounds(100, 100, 644, 548);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
@@ -191,21 +184,18 @@ public class Main {
 		
 		JLabel lblNewLabel = new JLabel("Select save file format");
 		lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblNewLabel.setBounds(10, 11, 136, 14);
+		lblNewLabel.setBounds(10, 8, 136, 14);
 		save_panel.add(lblNewLabel);
 		
-		fileFormatComboBox = new JComboBox();
-		fileFormatComboBox.setBounds(10, 28, 127, 20);
-		save_panel.add(fileFormatComboBox);
-		fileFormatComboBox.addItem("Select ...");
+		saveFileFormatComboBox = new JComboBox();
+		saveFileFormatComboBox.setBounds(10, 28, 127, 21);
+		save_panel.add(saveFileFormatComboBox);
+		saveFileFormatComboBox.addItem("Select ...");
 		
 		
 		btnNewButton = new JButton("Save");
 		btnNewButton.setFont(new Font("Tahoma", Font.BOLD, 11));
-		btnNewButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-			}
-		});
+		
 		btnNewButton.setBounds(140, 27, 61, 23);
 		save_panel.add(btnNewButton);
 		
@@ -213,6 +203,23 @@ public class Main {
 		panel_1.setBorder(new LineBorder(Color.LIGHT_GRAY));
 		panel_1.setBounds(371, 398, 251, 106);
 		frame.getContentPane().add(panel_1);
+		panel_1.setLayout(null);
+		
+		JLabel lblNewLabel_1 = new JLabel("Select open file format");
+		lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblNewLabel_1.setBounds(10, 8, 231, 14);
+		panel_1.add(lblNewLabel_1);
+		
+		JButton btnOpenFile = new JButton("Open File");
+		
+		btnOpenFile.setFont(new Font("Tahoma", Font.BOLD, 11));
+		btnOpenFile.setBounds(152, 27, 89, 23);
+		panel_1.add(btnOpenFile);
+		
+		openFileFormatComboBox = new JComboBox();
+		openFileFormatComboBox.setBounds(10, 28, 138, 21);
+		openFileFormatComboBox.addItem("Select ...");
+		panel_1.add(openFileFormatComboBox);
 		
 		
 		
@@ -246,30 +253,24 @@ public class Main {
 				if (entry.getKey() == "fileFormats") {
 					List<String> fileFormats = entry.getValue();
 					for (String fileFormatsName : fileFormats) {
-						fileFormatComboBox.addItem(fileFormatsName);
+						saveFileFormatComboBox.addItem(fileFormatsName);
+						openFileFormatComboBox.addItem(fileFormatsName);
 					}
 				}
-
-			
-				
-				
-				
-				
-			
 			}			
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			////System.out.println(e.getMessage());
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			////System.out.println(e.getMessage());
 		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			////System.out.println(e.getMessage());
 		} catch (FileNotFoundException e1){
-			System.out.println("Not one plugin was not found. The system can not continue its work");
+			////System.out.println("Not one plugin was not found. The system can not continue its work");
 		} catch (ClassCastException e){
-			System.out.println(e.getMessage());
+			////System.out.println(e.getMessage());
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -306,7 +307,7 @@ public class Main {
 				if(functionParameters != null){				
 					
 					if(scrollPaneF != null && functionParametersTable != null && scrollPaneF.getParent() == panel){
-						
+
 						panel.remove(scrollPaneF);
 						panel.remove(functionParametersTable);
 						panel.revalidate();
@@ -324,65 +325,56 @@ public class Main {
 						lblFunctionParameters = null;
 					}
 
-					lblFunctionParameters = new JLabel("Function Parameters");
-		
-					lblFunctionParameters.setBounds(7, 47, 136, 14);
-					panel.add(lblFunctionParameters);
+					if(!functionsComboBox.getSelectedItem().toString().equals("Select ...")){	
 					
-					panel.revalidate();
-					panel.repaint();
-					
-					
-					functionParametersTable = new JTable();
-					functionParametersTable.setForeground(SystemColor.infoText);
-					//functionParametersTable.setBackground(SystemColor.control);
-					functionParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
-					
-					functionParametersTable.setModel(new DefaultTableModel(new Object[]{"", ""}, 0) {
-						Class[] columnTypes = new Class[] {
-								String.class, Double.class
-						};
-						public Class getColumnClass(int columnIndex) {
-							return columnTypes[columnIndex];
-						}
+						lblFunctionParameters = new JLabel("Function Parameters");
 						
-						boolean[] columnEditables = new boolean[] {
-							false, true
-						};
-						public boolean isCellEditable(int row, int column) {
-							return columnEditables[column];
-						}
-					});
-
-					functionParametersTable.setSelectionBackground(SystemColor.controlHighlight);
-					functionParametersTable.setSelectionForeground(SystemColor.black);
-
-			
-					DefaultTableModel model = (DefaultTableModel) functionParametersTable.getModel();
-					
-					
-					functionParametersTable.setTableHeader(null);
-					scrollPaneF = new JScrollPane(functionParametersTable,
-					           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-				    scrollPaneF.setBounds(7, 65, 136, 0);
-					
-					for (Map.Entry<String, String> parameters : functionParameters.entrySet()) {
+						lblFunctionParameters.setBounds(7, 47, 136, 14);
+						panel.add(lblFunctionParameters);
 						
-						if(scrollPaneF.getHeight() < 80){
-							scrollPaneF.setSize(scrollPaneF.getWidth(), scrollPaneF.getHeight()+16);
-						} 
-						model.addRow(new Object[]{" "+parameters.getKey(), });					
+						panel.revalidate();
+						panel.repaint();
+						
+						functionParametersTable = new JTable();
+						functionParametersTable.setForeground(SystemColor.infoText);
+						functionParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
+						functionParametersTable.setModel(new DefaultTableModel(new Object[]{"", ""}, 0) {
+							Class[] columnTypes = new Class[] {
+									String.class, Double.class
+							};
+							public Class getColumnClass(int columnIndex) {
+								return columnTypes[columnIndex];
+							}
+							
+							boolean[] columnEditables = new boolean[] {
+								false, true
+							};
+							public boolean isCellEditable(int row, int column) {
+								return columnEditables[column];
+							}
+						});
+	
+						functionParametersTable.setSelectionBackground(SystemColor.controlHighlight);
+						functionParametersTable.setSelectionForeground(SystemColor.black);
+	
+						DefaultTableModel model = (DefaultTableModel) functionParametersTable.getModel();
+						
+						functionParametersTable.setTableHeader(null);
+						scrollPaneF = new JScrollPane(functionParametersTable,
+						           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+						           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					    scrollPaneF.setBounds(7, 65, 136, 0);
+						
+						for (Map.Entry<String, String> parameters : functionParameters.entrySet()) {
+							if(scrollPaneF.getHeight() < 80){
+								scrollPaneF.setSize(scrollPaneF.getWidth(), scrollPaneF.getHeight()+16);
+							} 
+							model.addRow(new Object[]{" "+parameters.getKey(), });					
+						}
+						panel.add(scrollPaneF);
+						panel.revalidate();
+						panel.repaint();
 					}
-					
-					
-					
-					panel.add(scrollPaneF);
-
-					panel.revalidate();
-					panel.repaint();
-					
 					
 				} else {
 					if(scrollPaneF != null && functionParametersTable != null && scrollPaneF.getParent() == panel){
@@ -400,12 +392,7 @@ public class Main {
 						panel.repaint();
 						lblFunctionParameters = null;
 					}
-					
 				}
-				
-				
-				
-				
 			}
 		});
 		
@@ -433,9 +420,9 @@ public class Main {
 					e1.printStackTrace();
 				}
 				
+				
 		
 				if(errorParameters != null){
-				
 					
 					if(scrollPaneErr != null && errorParametersTable != null && scrollPaneErr.getParent() == panel){
 						
@@ -455,67 +442,59 @@ public class Main {
 						panel.repaint();
 						lblErrorParameters = null;
 					}
-
 					
-					lblErrorParameters = new JLabel("Error Parameters");
+					if(!errorsComboBox.getSelectedItem().toString().equals("Select ...")){	
+					
+						lblErrorParameters = new JLabel("Error Parameters");
+								
+						lblErrorParameters.setBounds(7, 205, 136, 14);
+						panel.add(lblErrorParameters);
+						
+						panel.revalidate();
+						panel.repaint();
+						
+						errorParametersTable = new JTable();
+						errorParametersTable.setForeground(SystemColor.infoText);
+						errorParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
+						errorParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
+							Class[] columnTypes = new Class[] {
+									String.class, Double.class
+							};
+							public Class getColumnClass(int columnIndex) {
+								return columnTypes[columnIndex];
+							}
 							
-					lblErrorParameters.setBounds(7, 205, 136, 14);
-					panel.add(lblErrorParameters);
-					
-					panel.revalidate();
-					panel.repaint();
-					
-					
-					errorParametersTable = new JTable();
-					errorParametersTable.setForeground(SystemColor.infoText);
-					//errorParametersTable.setBackground(SystemColor.control);
-					errorParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
-
-					errorParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
-						Class[] columnTypes = new Class[] {
-								String.class, Double.class
-						};
-						public Class getColumnClass(int columnIndex) {
-							return columnTypes[columnIndex];
+							boolean[] columnEditables = new boolean[] {
+								false, true
+							};
+							public boolean isCellEditable(int row, int column) {
+								return columnEditables[column];
+							}
+						});
+	
+						errorParametersTable.setSelectionBackground(SystemColor.controlHighlight);
+						errorParametersTable.setSelectionForeground(SystemColor.black);
+						
+						DefaultTableModel model = (DefaultTableModel) errorParametersTable.getModel();
+	
+						errorParametersTable.setTableHeader(null);
+						scrollPaneErr = new JScrollPane(errorParametersTable,
+						           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+						           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					    scrollPaneErr.setBounds(7, 220, 136, 0);
+						
+						for (Map.Entry<String, String> parameters : errorParameters.entrySet()) {
+							
+							if(scrollPaneErr.getHeight() < 80){
+								scrollPaneErr.setSize(scrollPaneErr.getWidth(), scrollPaneErr.getHeight()+16);
+							} 
+							model.addRow(new Object[]{" "+parameters.getKey(), });					
 						}
 						
-						boolean[] columnEditables = new boolean[] {
-							false, true
-						};
-						public boolean isCellEditable(int row, int column) {
-							return columnEditables[column];
-						}
-					});
-
-					errorParametersTable.setSelectionBackground(SystemColor.controlHighlight);
-					errorParametersTable.setSelectionForeground(SystemColor.black);
-
-					
-					DefaultTableModel model = (DefaultTableModel) errorParametersTable.getModel();
-					
-					
-					
-					errorParametersTable.setTableHeader(null);
-					scrollPaneErr = new JScrollPane(errorParametersTable,
-					           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-				    scrollPaneErr.setBounds(7, 220, 136, 0);
-					
-					for (Map.Entry<String, String> parameters : errorParameters.entrySet()) {
-						
-						if(scrollPaneErr.getHeight() < 80){
-							scrollPaneErr.setSize(scrollPaneErr.getWidth(), scrollPaneErr.getHeight()+16);
-						} 
-					
-						model.addRow(new Object[]{" "+parameters.getKey(), });					
-					}
-					
-					
-					panel.add(scrollPaneErr);
-					panel.revalidate();
-					panel.repaint();
-					
+						panel.add(scrollPaneErr);
+						panel.revalidate();
+						panel.repaint();
+					}					
 					
 					
 				} else {
@@ -561,7 +540,6 @@ public class Main {
 				
 		
 				if(genParameters != null){
-				
 					
 					if(scrollPaneGen != null && genParametersTable != null && scrollPaneGen.getParent() == panel){
 						
@@ -582,67 +560,55 @@ public class Main {
 						lblGeneratorParameters = null;
 					}
 
-					
-					lblGeneratorParameters = new JLabel("Generetor Parameters");
+					if(!genParamsComboBox.getSelectedItem().toString().equals("Select ...")){	
+									
+						lblGeneratorParameters = new JLabel("Generetor Parameters");
+						lblGeneratorParameters.setBounds(7, 357, 136, 14);
+						panel.add(lblGeneratorParameters);
+						
+						genParametersTable = new JTable();
+						genParametersTable.setForeground(SystemColor.infoText);
+						genParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
+											
+						genParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
+							Class[] columnTypes = new Class[] {
+									String.class, Double.class
+							};
+							public Class getColumnClass(int columnIndex) {
+								return columnTypes[columnIndex];
+							}
 							
-					lblGeneratorParameters.setBounds(7, 357, 136, 14);
-					panel.add(lblGeneratorParameters);
-					
-					
-					
-					genParametersTable = new JTable();
-					genParametersTable.setForeground(SystemColor.infoText);
-					//genParametersTable.setBackground(SystemColor.control);
-					genParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
-					
-										
-					genParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
-						Class[] columnTypes = new Class[] {
-								String.class, Double.class
-						};
-						public Class getColumnClass(int columnIndex) {
-							return columnTypes[columnIndex];
+							boolean[] columnEditables = new boolean[] {
+								false, true
+							};
+							public boolean isCellEditable(int row, int column) {
+								return columnEditables[column];
+							}
+						});
+	
+						genParametersTable.setSelectionBackground(SystemColor.controlHighlight);
+						genParametersTable.setSelectionForeground(SystemColor.black);
+	
+						DefaultTableModel model = (DefaultTableModel) genParametersTable.getModel();
+	
+						genParametersTable.setTableHeader(null);
+						scrollPaneGen = new JScrollPane(genParametersTable,
+						           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+						           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					    scrollPaneGen.setBounds(7, 375, 136, 0);
+						
+						for (Map.Entry<String, String> parameters : genParameters.entrySet()) {
+							
+							if(scrollPaneGen.getHeight() < 80){
+								scrollPaneGen.setSize(scrollPaneGen.getWidth(), scrollPaneGen.getHeight()+16);
+							} 
+							model.addRow(new Object[]{" "+parameters.getKey(), });					
 						}
 						
-						boolean[] columnEditables = new boolean[] {
-							false, true
-						};
-						public boolean isCellEditable(int row, int column) {
-							return columnEditables[column];
-						}
-					});
-
-					genParametersTable.setSelectionBackground(SystemColor.controlHighlight);
-					genParametersTable.setSelectionForeground(SystemColor.black);
-
-					
-					
-					DefaultTableModel model = (DefaultTableModel) genParametersTable.getModel();
-					
-					
-					
-					genParametersTable.setTableHeader(null);
-					scrollPaneGen = new JScrollPane(genParametersTable,
-					           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-				    scrollPaneGen.setBounds(7, 375, 136, 0);
-					
-					for (Map.Entry<String, String> parameters : genParameters.entrySet()) {
-						
-						if(scrollPaneGen.getHeight() < 80){
-							scrollPaneGen.setSize(scrollPaneGen.getWidth(), scrollPaneGen.getHeight()+16);
-						} 
-					
-						model.addRow(new Object[]{" "+parameters.getKey(), });					
+						panel.add(scrollPaneGen);
+						panel.revalidate();
+						panel.repaint();
 					}
-					
-					
-					panel.add(scrollPaneGen);
-					panel.revalidate();
-					panel.repaint();
-					
-					
 					
 				} else {
 					if(scrollPaneGen != null && genParametersTable != null && scrollPaneGen.getParent() == panel){
@@ -666,12 +632,12 @@ public class Main {
 		
 		
 		//обработчик выбора типа файлов для сохранения
-		fileFormatComboBox.addActionListener(new ActionListener() {
+		saveFileFormatComboBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
 				Map<String, String> saveParameters = null;
 				try {
-					saveParameters = reflection.loadSaveParametersFields(fileFormatComboBox.getSelectedItem().toString());
+					saveParameters = reflection.loadSaveParametersFields(saveFileFormatComboBox.getSelectedItem().toString());
 				} catch (ClassNotFoundException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -685,10 +651,8 @@ public class Main {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-				
 		
 				if(saveParameters != null){
-				
 					
 					if(scrollPaneSave != null && saveParametersTable != null && scrollPaneSave.getParent() == save_panel){
 						
@@ -701,69 +665,60 @@ public class Main {
 						scrollPaneSave = null;
 					}
 					
-					saveParametersTable = new JTable();
-					saveParametersTable.setForeground(SystemColor.infoText);
-					//genParametersTable.setBackground(SystemColor.control);
-					saveParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
-					
-					
-					saveParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
-						Class[] columnTypes = new Class[] {
-								String.class, String.class
-						};
-						public Class getColumnClass(int columnIndex) {
-							return columnTypes[columnIndex];
-						}
+					if(!saveFileFormatComboBox.getSelectedItem().toString().equals("Select ...")){	
 						
-						boolean[] columnEditables = new boolean[] {
-							false, true
-						};
-						public boolean isCellEditable(int row, int column) {
-							return columnEditables[column];
-						}
-					});
-					
-					saveParametersTable.getColumnModel().getColumn(0).setPreferredWidth(240);
-					
-					
+						saveParametersTable = new JTable();
+						saveParametersTable.setForeground(SystemColor.infoText);
+						saveParametersTable.setBorder(new LineBorder(SystemColor.textInactiveText));
+						saveParametersTable.setModel(new DefaultTableModel(new Object[]{"Column1", "Column2"}, 0) {
+							Class[] columnTypes = new Class[] {
+									String.class, String.class
+							};
+							public Class getColumnClass(int columnIndex) {
+								return columnTypes[columnIndex];
+							}
+							
+							boolean[] columnEditables = new boolean[] {
+								false, true
+							};
+							public boolean isCellEditable(int row, int column) {
+								return columnEditables[column];
+							}
+						});
 						
-					saveParametersTable.setSelectionBackground(SystemColor.controlHighlight);
-					saveParametersTable.setSelectionForeground(SystemColor.black);
+						saveParametersTable.getColumnModel().getColumn(0).setPreferredWidth(240);
+						saveParametersTable.setSelectionBackground(SystemColor.controlHighlight);
+						saveParametersTable.setSelectionForeground(SystemColor.black);
+						
+	
+						DefaultTableModel model = (DefaultTableModel) saveParametersTable.getModel();
+						
+						saveParametersTable.setTableHeader(null);
+						scrollPaneSave = new JScrollPane(saveParametersTable,
+						           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+						           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					    scrollPaneSave.setBounds(10, 52, 189, 0);
+						for (Map.Entry<String, String> parameters : saveParameters.entrySet()) {
+							
+							if(scrollPaneSave.getHeight() < 54){
+								scrollPaneSave.setSize(scrollPaneSave.getWidth(), scrollPaneSave.getHeight()+17);
+							} 
+						
+							model.addRow(new Object[]{" "+parameters.getKey(), });					
 
-					DefaultTableModel model = (DefaultTableModel) saveParametersTable.getModel();
-					
-					/*
-					JComboBox csvSeparators = new JComboBox();
-					csvSeparators.addItem("  ;");
-					csvSeparators.addItem("  ,");
-					csvSeparators.addItem("  :");
-					csvSeparators.addItem("  |");
-					csvSeparators.addItem("  _");
-					csvSeparators.addItem("  /");
-					
-					
-					saveParametersTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(csvSeparators));
-					*/			
-					
-					saveParametersTable.setTableHeader(null);
-					scrollPaneSave = new JScrollPane(saveParametersTable,
-					           JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-					           JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-				    scrollPaneSave.setBounds(10, 52, 189, 0);
-					for (Map.Entry<String, String> parameters : saveParameters.entrySet()) {
+							if(saveParameters.size()==1){
+								scrollPaneSave.setSize(scrollPaneSave.getWidth(), scrollPaneSave.getHeight()+17);
+								
+								//model.addRow(new Object[]{,});					
+							}
 						
-						if(scrollPaneSave.getHeight() < 54){
-							scrollPaneSave.setSize(scrollPaneSave.getWidth(), scrollPaneSave.getHeight()+17);
-						} 
-					
-						model.addRow(new Object[]{" "+parameters.getKey(), });					
+						}
+						
+						
+						save_panel.add(scrollPaneSave);
+						save_panel.revalidate();
+						save_panel.repaint();
 					}
-					
-					
-					save_panel.add(scrollPaneSave);
-					save_panel.revalidate();
-					save_panel.repaint();
-					
 					
 					
 				} else {
@@ -779,50 +734,174 @@ public class Main {
 			}
 		});
 	
+		//обработчик выбора типа файла для открытия
+		openFileFormatComboBox.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					reflection.loadOpenParametersFields(openFileFormatComboBox.getSelectedItem().toString());
+				} catch (ClassNotFoundException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (InstantiationException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (IllegalAccessException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}				
+			}
+		});
+		
+		
 		
 		//обработчик нажатия кнопки Generate
 		btnGenerateData.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 			
-				generateDataHandler();
+				
+				
+				try{
+					generateDataHandler();
+				} catch (Exception ex){
+					MessageDialogWindow.showErrorWindow(ex.getMessage(), "Error Message", frame);
+				} 
 			}
 		});
+		
+		//обработчик кнопки Save
+		btnNewButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			
+				try{
+					saveDataToFile();
+				} catch (Exception ex){
+					MessageDialogWindow.showErrorWindow(ex.getMessage(), "Error Message", frame);
+				}
+				
+			}
+		});
+		
+		//обработчик кнопки Open File
+		btnOpenFile.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				try{
+					openDataFile();
+				} catch (Exception ex){
+					MessageDialogWindow.showErrorWindow(ex.getMessage(), "Error Message", frame);
+				}
+			}
+		});
+		
+		
+	}	
+
+	private void saveDataToFile(){
+		//получаем объект dao
+		
+		if(saveParametersTable == null){
+			throw new RuntimeException("Select save file format, please!");
+		}
+		
+		stopEditing(saveParametersTable);
+		
+		Map<String, Object> daoParameters = new TreeMap<String, Object>();
+		
+		for (int count = 0; count < saveParametersTable.getModel().getRowCount(); count++) {
+			daoParameters.put(saveParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
+									saveParametersTable.getModel().getValueAt(count, 1));
+		}		
+		FileDAO dao = reflection.getFileDAOInstance(daoParameters);
+		if(!dao.checkParameters()){
+			throw new RuntimeException("File format parameters is not valid. \nPlease, set correct parameters!");
+		}
+		
+		
+		if(dataGenerator != null){
+		
+			JFileChooser fileChooser = new JFileChooser();
+			
+			FileFilter filter = new FileTypeFilter(dao.getDataFileFilterExtention(), dao.getDataFileFilterDescription());
+			fileChooser.addChoosableFileFilter(filter);
+			fileChooser.setFileFilter(filter);
+			fileChooser.setSelectedFile( new File("values" + dao.getDataFileFilterExtention()));
+			
+			
+			if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+			
+				File file = fileChooser.getSelectedFile();
+				String path = file.getAbsolutePath();
+				
+				Map<Double, Double> dataForSave = dataGenerator.getData();
+				Map<String, Map<String, String>> parametersForSave = dataGenerator.getParametersForSave();
+				
+				try {
+					dao.saveData(dataForSave, path);
+					dao.saveParameters(parametersForSave, path);
+				} catch (FilerException e) {
+					////System.out.println(e.getMessage());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					////System.out.println(e.getMessage());
+				}
+				
+			}
+		} else {
+			throw new RuntimeException("There are no data to saving");
+		}		
 	}
 	
-	
-	
 	private void generateDataHandler(){
+		
+		
+		
+		if(functionParametersTable == null || errorParametersTable == null || genParametersTable == null){
+			throw new RuntimeException("Select function, error and generator parameters, please");
+		}
+		
+		stopEditing(genParametersTable);
+		stopEditing(errorParametersTable);
+		stopEditing(functionParametersTable);
 		
 		//получаем объект функции-генеретора
 		Map<String, Object> functionParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < functionParametersTable.getModel().getRowCount(); count++) {
 			functionParameters.put(functionParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
-									functionParametersTable.getModel().getValueAt(count, 1));
+									functionParametersTable.getModel().getValueAt(count, 1).toString());
 		}		
 		DataGenerationFunction dataGenerationFunction = reflection.getFunctionInstance(functionParameters);
-		dataGenerationFunction.checkParameters();
+		
+		if(!dataGenerationFunction.checkParameters()){
+			throw new RuntimeException("Data generation function parameters is not valid. \nPlease, set correct parameters!");
+		}
 		
 		//получаем объект погрешности
 		Map<String, Object> errorParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < errorParametersTable.getModel().getRowCount(); count++) {
 			errorParameters.put(errorParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
-									errorParametersTable.getModel().getValueAt(count, 1));
+									errorParametersTable.getModel().getValueAt(count, 1).toString());
 		}		
 		MeasurementError measurementError = reflection.getMeasurementErrorInstance(errorParameters);
-		measurementError.checkParameters();
+		
+		if(!measurementError.checkParameters()){
+			throw new RuntimeException("Measurement error parameters is not valid. \nPlease, set correct parameters!");
+		}
 		
 		//получаем объект параметров генератора
-		Map<String, Double> genParameters = new TreeMap<String, Double>();
+		Map<String, Object> genParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < genParametersTable.getModel().getRowCount(); count++) {
 			genParameters.put( genParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
-								(Double) genParametersTable.getModel().getValueAt(count, 1));
+								genParametersTable.getModel().getValueAt(count, 1).toString());
 		}			
 		GeneratorParameters generatorParameters =  reflection.getGeneratorParametersInstance(genParameters);
-		generatorParameters.checkParameters();
+		if(!generatorParameters.checkParameters()){
+			throw new RuntimeException("Generator parameters is not valid. \nPlease, set correct parameters!");
+		}
 		
 		//создаем генератор
-		DataGenerator dataGenerator = new DataGenerator(dataGenerationFunction, measurementError, generatorParameters);
+		dataGenerator = new DataGenerator(dataGenerationFunction, measurementError, generatorParameters);
 		dataGenerator.generateData();
 		
 		//получаем "чистые" данные и данные с погрешностью
@@ -833,33 +912,158 @@ public class Main {
 		buildChart(dataForChart, origDataForChart);
 			
 	}
+
+	private void openDataFile(){
+		
+		if(openFileFormatComboBox.getSelectedIndex() == 0){
+			throw new RuntimeException("Select open file format, please!");
+		}
+		
+		JFileChooser fileChooser = new JFileChooser();
+		FileDAO dao = reflection.getFileDAOInstance(null);
+		
+		FileFilter filter = new FileTypeFilter(dao.getParametersFileFilterExtention(), dao.getParametersFileFilterDescription());
+		fileChooser.addChoosableFileFilter(filter);
+		fileChooser.setFileFilter(filter);
+		
+		if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+		
+			File file = fileChooser.getSelectedFile();
+			String path = file.getAbsolutePath();
+			
+			Map<String, Object> functionParametersFromFile = null;
+			Map<String, Object> errorParametersFromFile = null;
+			Map<String, Object> generatorParametersFromFile = null;
+			Map<String, Object> saveFormatParametersFromFile = null;
+			
+			try {
+				functionParametersFromFile = dao.getFunctionParameters(file);
+				errorParametersFromFile = dao.getErrorParameters(file);
+				generatorParametersFromFile = dao.getGeneratorParameters(file);
+				saveFormatParametersFromFile = dao.getSaveFormatParameters(file);
+			
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+
+			functionsComboBox.setSelectedItem(dao.getFunctionNameFromFile());
+			errorsComboBox.setSelectedItem(dao.getErrorNameFromFile());
+			genParamsComboBox.setSelectedItem(dao.getGeneratorParametersNameFromFile());
+			
+			
+		
+			DataGenerationFunction dataGenerationFunction = reflection.getFunctionInstance(functionParametersFromFile);
+			if(!dataGenerationFunction.checkParameters()){
+				throw new RuntimeException("Data generation function parameters is not valid. Please, choose correct parameters file!");
+			}
+			
+			MeasurementError measurementError = reflection.getMeasurementErrorInstance(errorParametersFromFile);
+			if(!measurementError.checkParameters()){
+				throw new RuntimeException("Measurement error parameters is not valid. \nPlease, select correct parameters file!");
+			}
+			GeneratorParameters generatorParameters =  reflection.getGeneratorParametersInstance(generatorParametersFromFile);
+			if(!generatorParameters.checkParameters()){
+				throw new RuntimeException("Generator parameters is not valid. \nPlease, select correct parameters file!");
+			}
+		
+			//создаем генератор
+			dataGenerator = new DataGenerator(dataGenerationFunction, measurementError, generatorParameters);
+			dataGenerator.generateData();
+			
+			//получаем "чистые" данные и данные с погрешностью
+			Map<Double, Double> origDataForChart = dataGenerator.getOriginalData();
+			Map<Double, Double> dataForChart = null;
+			
+			try {
+				dataForChart = dao.getData(new File (file.getAbsolutePath().replaceAll("parameters", "values").replace("xml", "csv")));
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+			//строим график из полученных данных
+			buildChart(dataForChart, origDataForChart);
+		
+		
+			
+		}
+		
+		
+	}
+
+	
+	public void stopEditing(JTable table)
+	{
+	    if (table.isEditing())
+	    {
+	        int col = table.getEditingColumn(), 
+	            row = table.getEditingRow();
+	        CellEditor cellEditor = table.getCellEditor();
+	        if (cellEditor != null)
+	              cellEditor.stopCellEditing();
+	        table.changeSelection(row, col, false, false);
+	    }
+	}
 	
 	private void buildChart(Map<Double, Double> dataForChart, Map<Double, Double> origDataForChart){
 	
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 		DefaultCategoryDataset origDataset = new DefaultCategoryDataset();
 
+		
+
+		Double maxValueInData = (Collections.max(dataForChart.values()));
+		Double maxValueInOrigData = (Collections.max(origDataForChart.values()));
+		Double minValueInData = (Collections.min(dataForChart.values()));
+		Double minValueInOrigData = (Collections.min(origDataForChart.values()));
+		
+		double max = 0;
+		if(maxValueInData > maxValueInOrigData){
+			max = maxValueInData;
+		} else{
+			max = maxValueInOrigData;
+		}
+		
+		double min = 0;
+		if(minValueInData < minValueInOrigData){
+			min = minValueInData;
+		} else{
+			min = minValueInOrigData;
+		}
+		
+		
+		
+		
 		for (Entry<Double, Double> entry : dataForChart.entrySet()) {
 			double x = entry.getKey();
 			double y = entry.getValue();
-			dataset.setValue(y, "", entry.getKey());
+			dataset.setValue(y, "F*(x) - with noise", entry.getKey());
 		}
 		
 		for (Entry<Double, Double> entry : origDataForChart.entrySet()) {
 			double x = entry.getKey();
 			double y = entry.getValue();
-			origDataset.setValue(y, "", entry.getKey());
+			origDataset.setValue(y, "F(x) - original", entry.getKey());
 		}
 		
 		// create the chart...
         final JFreeChart chart = ChartFactory.createBarChart(
             "Experimental data", // chart title
-            "X", 		        // domain axis label
-            "F (X)",           // range axis label
-            dataset,          // data
+            "", 		        // domain axis label
+            "",           	   // range axis label
+            origDataset,      // data
             PlotOrientation.VERTICAL,
-            false,          // include legend
-            true,
+            true,           // include legend
+            false,
             false
         );
 
@@ -867,26 +1071,29 @@ public class Main {
 
         // set the background color for the chart...
         //chart.setBackgroundPaint(new Color(0xCC, 0xFF, 0xCC));
-        //chart.getLegend().setAnchor(Legend.SOUTH);
+        chart.getLegend().setAnchor(Legend.SOUTH);
 
-        // get a reference to the plot for further customisation...
+        
         final CategoryPlot plot = chart.getCategoryPlot();
-        plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
-        plot.setRangeAxisLocation(AxisLocation.TOP_OR_LEFT);
         final CategoryItemRenderer renderer1 = plot.getRenderer();
         renderer1.setSeriesPaint(0, Color.darkGray);
-        renderer1.setSeriesPaint(1, Color.yellow);
-        renderer1.setSeriesPaint(2, Color.green);
+        
+        plot.getRangeAxis().setRange(min, max);
 
+       
 
-        final ValueAxis axis2 = new NumberAxis("F'(X)");
+        
+        final ValueAxis axis2 = new NumberAxis("");
+        axis2.setRange(min, max);
+        
         plot.setRangeAxis(1, axis2);
-        plot.setDataset(1, origDataset);
+        plot.setDataset(1, dataset);
         plot.mapDatasetToRangeAxis(1, 1);
         
         
         final CategoryItemRenderer renderer2 = new LineAndShapeRenderer(2); 
         renderer2.setSeriesPaint(0, Color.green);
+        
         plot.setRenderer(1, renderer2);
 
         plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
@@ -899,6 +1106,7 @@ public class Main {
         chart_panel.add(chartPanel,BorderLayout.CENTER);
 
         chart_panel.validate();
+        
     
 	}
 }

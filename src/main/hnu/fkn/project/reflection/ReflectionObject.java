@@ -36,7 +36,7 @@ public class ReflectionObject {
 		File[] files = pluginFolder.listFiles();
 
 		if (files == null || files.length == 0){
-			throw new FileNotFoundException();
+			throw new FileNotFoundException("Plugin files not found");
 		}		
 		
 		Map<String, List<String>> pluginsNames = new HashMap<>();
@@ -136,7 +136,7 @@ public class ReflectionObject {
 			
 			this.function = (DataGenerationFunction) clazz.newInstance();
 			
-			functionFields = this.function.getFunctionParameters();
+			functionFields = this.function.getParametersForRendering();
 		}
 		
 		return functionFields;
@@ -178,8 +178,6 @@ public class ReflectionObject {
 		return genParamsFields;
 	}
 	
-	
-	
 	public Map<String, String> loadSaveParametersFields(String fileFormatName) 
 			throws ClassNotFoundException, InstantiationException, IllegalAccessException{
 		
@@ -196,6 +194,21 @@ public class ReflectionObject {
 		
 		return saveParamsFields;
 	}
+	
+	public Map<String, String> loadOpenParametersFields(String fileFormatName) 
+			throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+		
+		//Antention! hardcode - no parameters, just create new dao instance
+		if (pluginClassNames.containsKey(fileFormatName)){
+			String canonicalClassName = pluginClassNames.get(fileFormatName);
+					
+			Class clazz = Class.forName(canonicalClassName);
+			
+			this.dao = (FileDAO) clazz.newInstance();
+		}		
+		return null;
+	}
+	
 	
 	
 
@@ -215,7 +228,14 @@ public class ReflectionObject {
 	}
 	
 	public FileDAO getFileDAOInstance(Map<String, ? extends Object> parameters){
-		this.dao.setParameters(parameters);
+		
+		if(parameters != null){
+			this.dao.setParameters(parameters);
+		} else{
+			
+		}
+		
+		
 		return this.dao;
 	}
 	

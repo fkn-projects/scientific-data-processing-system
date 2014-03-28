@@ -3,138 +3,220 @@ package plugins;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormatSymbols;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import javax.annotation.processing.FilerException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Element;
+
 public class XmlCsvFileDAO implements FileDAO {
 
-	private String fileFormatName = "XML-CSV format";
-	
+	private String fileFormatName;
 	private String csvDataSeparator;
-	private String isHeader;
 	
-	@Override
-	public void saveData(Map<Number, Number> data, String path) {	
-		BufferedWriter out;
-		try {
-			FileWriter fstream = new FileWriter(path + "values.csv");
-			out = new BufferedWriter(fstream);
-			int count = 0;
-			Iterator<Entry<Number, Number>> it = data.entrySet().iterator();
-			while (it.hasNext() && count < data.size()) {
-				 Entry<Number, Number> pairs = it.next(); 
-				 out.write(pairs.getKey() + this.csvDataSeparator);
-				 out.write(pairs.getValue() + "\n");
-				 count++;
-			 }
-			out.close();			
-		} catch (IOException e) {
-			System.out.println("Exception - Error with file");
-			
-		}
-
-	}
-
-	@Override
-	public void saveParameters(Map<String, Object> parameters, String path) {
-		BufferedWriter out;
-		try {
-			FileWriter fstream = new FileWriter(path + "parameters.xml");
-			out = new BufferedWriter(fstream);
-			int count = 0;
-			Iterator<Entry<String, Object>> it = parameters.entrySet().iterator();
-			while (it.hasNext() && count < parameters.size()) {
-				 Entry<String, Object> pairs = it.next(); 
-				 out.write(pairs.getKey() + " ");
-				 out.write(pairs.getValue() + "\n");
-				 count++;
-			 }
-			out.close();			
-		} catch (IOException e) {
-			System.out.println("Exception - Error with file");
-			
-		}
-
-	}
-
-	@Override
-	public Map<Number, Number> getData(File dataFile) {
-		Map<Number,Number> result = new HashMap<Number,Number>();
-		try {
-			BufferedReader br= new BufferedReader(new BufferedReader(new FileReader(dataFile)));
-			String sCurrentLine = "";
-            while ((sCurrentLine = br.readLine()) != null) {
-                int first = Integer.parseInt(sCurrentLine.substring(0, sCurrentLine.indexOf(" ")));
-                int rest =  Integer.parseInt(sCurrentLine.substring(sCurrentLine.indexOf(" ")).trim());
-                result.put(first, rest);
-            }
-		} catch (FileNotFoundException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		} catch (NumberFormatException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		}
-		return result;
-	}
-
-	@Override
-	public Map<String, Object> getParemeters(File parametersFile) {
-		Map<String,Object> result = new HashMap<String,Object>();
-		try {
-			BufferedReader br= new BufferedReader(new BufferedReader(new FileReader(parametersFile)));
-			String sCurrentLine = "";
-            while ((sCurrentLine = br.readLine()) != null) {
-                String first = sCurrentLine.substring(0, sCurrentLine.indexOf(" "));
-                int rest =  Integer.parseInt(sCurrentLine.substring(sCurrentLine.indexOf(" ")).trim());
-                result.put(first, rest);
-            }
-		} catch (FileNotFoundException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		} catch (NumberFormatException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.out.println("Exception - Error with file");
-			e.printStackTrace();
-		}
-		return result;
-	}
-
+	private String functionNameFromFile;
+	private String errorNameFromFile;
+	private String generatorParametersNameFromFile;
 	
+	private Map<String, String> parametersNames = new HashMap<String, String>();
+	private List<String> csvSeparators = new ArrayList<>();
 	
-	@Override
-	public void setParameters(Map<String, ? extends Object> parameters) {
-		// TODO Auto-generated method stub
+	public XmlCsvFileDAO() {
+
+		fileFormatName = "XML-CSV format";
+		parametersNames.put("CSV_separator", "String");
 		
+		DecimalFormatSymbols dfs = new DecimalFormatSymbols();
+		char separator = dfs.getDecimalSeparator();
+		if (separator == ',') {
+			csvSeparators.add(" \",\" ");
+		} else if (separator == '.') {
+			csvSeparators.add(" \".\" ");
+		}
+		csvSeparators.add(" \":\" ");
+		csvSeparators.add(" \";\" ");
+	}
+
+	@Override
+	public void saveData(Map<Double, Double> data, String path)
+			throws IOException {
+		BufferedWriter out;
+
+		if (!path.endsWith(".csv")) {
+			throw new FilerException(
+					"Wrong file format. Please, type correct file extention");
+		}
+
+		try {
+
+			FileWriter fstream = new FileWriter(path);
+			out = new BufferedWriter(fstream);
+			int count = 0;
+			Iterator<Entry<Double, Double>> it = data.entrySet().iterator();
+			while (it.hasNext() && count < data.size()) {
+				Entry<Double, Double> pairs = it.next();
+
+				out.write(pairs.getKey() + this.csvDataSeparator);
+				out.write(pairs.getValue() + "\n");
+				count++;
+			}
+			out.close();
+		} catch (IOException e) {
+			throw new RuntimeException("Невозможно записать данные в файл.");
+		}
+
+	}
+
+	@Override
+	public void saveParameters(Map<String, Map<String, String>> parameters,
+			String path) throws IOException {
+		BufferedWriter out;
+
+		File tempFile = new File(path);
+		path = path.replaceAll(tempFile.getName(), "parameters.xml");
+
+		try {
+			FileWriter fstream = new FileWriter(path);
+			out = new BufferedWriter(fstream);
+			int lineCount = 0;
+
+			Map<String, String> functionParameters = parameters.get("function");
+			Map<String, String> errorParameters = parameters.get("error");
+			Map<String, String> genParameters = parameters.get("generator");
+
+			Map<String, String> saveFormatParameters = new TreeMap<>();
+			saveFormatParameters.put("csv-separator type=\"String\"",
+					csvDataSeparator);
+			
+			Date d = new Date();
+			SimpleDateFormat dateFormat = new SimpleDateFormat(
+					"dd.MM.yyyy hh:mm");
+
+			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+			out.write("<parameters>");
+			out.write("\n");
+
+			out.write("\t<date>" + dateFormat.format(d) + "</date>\n");
+			
+			out.write("\t<function>\n");
+			lineCount = writeParameters(functionParameters, out, lineCount);
+			out.write("\t</function>\n");
+
+			lineCount = 0;
+			out.write("\t<error>\n");
+			writeParameters(errorParameters, out, lineCount);
+			out.write("\t</error>\n");
+
+			lineCount = 0;
+			out.write("\t<generator-parameters>\n");
+			writeParameters(genParameters, out, lineCount);
+			out.write("\t</generator-parameters>\n");
+
+			lineCount = 0;
+			out.write("\t<save-format-parameters>\n");
+			writeParameters(saveFormatParameters, out, lineCount);
+			out.write("\t</save-format-parameters>\n");
+
+			out.write("</parameters>");
+			out.close();
+
+		} catch (IOException e) {
+			throw new IOException("Exception - Error with file");
+
+		}
+
+	}
+
+	private int writeParameters(Map<String, String> parameters,
+			BufferedWriter out, int lineCount) throws IOException {
+		Iterator<Entry<String, String>> it = parameters.entrySet().iterator();
+		while (it.hasNext() && lineCount < parameters.size()) {
+			Entry<String, String> pairs = it.next();
+			out.write("\t\t<" + pairs.getKey() + ">");
+			out.write(pairs.getValue());
+			out.write("</" + pairs.getKey().split(" ")[0] + ">");
+			out.write("\n");
+			lineCount++;
+		}
+		return lineCount;
+	}
+
+	
+	@Override
+	public Map<Double, Double> getData(File dataFile) throws IOException {
+		Map<Double, Double> result = new TreeMap<Double, Double>();
+		try {
+			BufferedReader br = new BufferedReader(new BufferedReader(
+					new FileReader(dataFile)));
+			String sCurrentLine = "";
+			String[] xy = new String[2];
+			while ((sCurrentLine = br.readLine()) != null) {
+				xy = sCurrentLine.split(csvDataSeparator);
+				result.put(Double.parseDouble(xy[0]), Double.parseDouble(xy[1]));
+			}
+			br.close();
+		} catch (FileNotFoundException e) {
+			throw new FileNotFoundException("Exception - Error with file1");
+		} catch (NumberFormatException e) {
+			//throw new RuntimeException("Невозможно преобразовать данные. Ошибка в CSV-файле");
+			e.printStackTrace();
+		} catch (IOException e) {
+			throw new IOException("Exception - Error with file3");
+		}
+		return result;
+	}
+
+	public void setParameters(Map<String, ? extends Object> parameters) {
+
+		Object tempObject = parameters.get("CSV_separator");
+
+		if (tempObject instanceof String) {
+			this.csvDataSeparator = (String) parameters.get("CSV_separator");
+			if (!csvSeparators.contains(" \"" + this.csvDataSeparator + "\" ")) {
+				throw new RuntimeException(
+						"Parameter \"CSV_separator\" isn't valid. "
+								+ "\n Please, set one of the following symbols - "
+								+ csvSeparators);
+			}
+
+		} else if (tempObject == null) {
+			throw new RuntimeException(
+					"Set parameter \"CSV_separator\", please");
+		} else {
+			throw new ClassCastException(
+					"Parameter \"CSV_separator\" isn't valid");
+		}
+
 	}
 
 	@Override
 	public boolean checkParameters() {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	@Override
 	public Map<String, String> getParametersForRendering() {
-
-		Map<String, String> parametersNames = new TreeMap<String, String>();
-		
-		parametersNames.put("CSV separator", "String");
-		parametersNames.put("is header present", "String");
-	
-
 		return parametersNames;
 	}
 
@@ -143,4 +225,213 @@ public class XmlCsvFileDAO implements FileDAO {
 		return fileFormatName;
 	}
 
+	
+	//FileFormat Filters
+	@Override
+	public String getDataFileFilterDescription() {
+		return "Comma-Separated Values";
+	}
+
+	@Override
+	public String getDataFileFilterExtention() {
+		return ".csv";
+	}
+
+	@Override
+	public String getParametersFileFilterDescription() {
+		return "eXtensible Markup Language";
+	}
+
+	@Override
+	public String getParametersFileFilterExtention() {
+		return ".xml";
+	}
+	
+	//Getting plugin's parameters
+	@Override
+	public Map<String, Object> getFunctionParameters(File parametersFile)
+			throws FileNotFoundException, IOException {
+
+		Map<String, Object> functionParameters = new TreeMap<>();
+		
+		try {
+			DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = null;
+			builder = builderFactory.newDocumentBuilder();
+
+			Document document = builder.parse(new FileInputStream(parametersFile.getAbsolutePath()));
+			Element rootElement = document.getDocumentElement();
+			NodeList nodes = rootElement.getChildNodes();
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+				Node node = nodes.item(i);
+
+				if (node.getChildNodes().getLength() > 1 && node instanceof Element){
+					Element plugin = (Element) node;
+					
+					if (plugin.getTagName() == "function") {
+						functionParameters = getParametersMapFromDOMElement(plugin);
+						this.functionNameFromFile = (String) functionParameters.get("name");
+					}
+				}					
+			}
+			
+		} catch (SAXException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (ParserConfigurationException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (IOException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		}
+		
+		return functionParameters;
+	}
+	
+	@Override
+	public Map<String, Object> getErrorParameters(File parametersFile) throws IOException {
+		
+		Map<String, Object> errorParameters = new TreeMap<>();
+		
+		try {
+			DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = null;
+			builder = builderFactory.newDocumentBuilder();
+
+			Document document = builder.parse(new FileInputStream(parametersFile.getAbsolutePath()));
+			Element rootElement = document.getDocumentElement();
+			NodeList nodes = rootElement.getChildNodes();
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+				Node node = nodes.item(i);
+
+				if (node.getChildNodes().getLength() > 1 && node instanceof Element){
+					Element plugin = (Element) node;
+					
+					if (plugin.getTagName() == "error") {
+						errorParameters = getParametersMapFromDOMElement(plugin);
+						this.errorNameFromFile = (String) errorParameters.get("name");
+
+					}
+				}					
+			}
+			
+		} catch (SAXException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (ParserConfigurationException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (IOException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		}
+		
+		return errorParameters;
+	}
+	
+	@Override
+	public Map<String, Object> getGeneratorParameters(File parametersFile) throws IOException {
+
+		Map<String, Object> generatorParameters = new TreeMap<>();
+		
+		try {
+			DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = null;
+			builder = builderFactory.newDocumentBuilder();
+
+			Document document = builder.parse(new FileInputStream(parametersFile.getAbsolutePath()));
+			Element rootElement = document.getDocumentElement();
+			NodeList nodes = rootElement.getChildNodes();
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+				Node node = nodes.item(i);
+
+				if (node.getChildNodes().getLength() > 1 && node instanceof Element){
+					Element plugin = (Element) node;
+					
+					if (plugin.getTagName() == "generator-parameters") {
+						generatorParameters = getParametersMapFromDOMElement(plugin);
+						this.generatorParametersNameFromFile = (String) generatorParameters.get("name");
+
+					}
+				}					
+			}
+			
+		} catch (SAXException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (IOException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (ParserConfigurationException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");	
+		}
+		
+		return generatorParameters;
+	}
+		
+	@Override
+	public Map<String, Object> getSaveFormatParameters(File parametersFile) throws IOException {
+		
+		Map<String, Object> saveFormatParameters = new TreeMap<>();
+		
+		try {
+			DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = null;
+			builder = builderFactory.newDocumentBuilder();
+
+			Document document = builder.parse(new FileInputStream(parametersFile.getAbsolutePath()));
+			Element rootElement = document.getDocumentElement();
+			NodeList nodes = rootElement.getChildNodes();
+
+			for (int i = 0; i < nodes.getLength(); i++) {
+				Node node = nodes.item(i);
+
+				if (node.getChildNodes().getLength() > 1 && node instanceof Element){
+					Element plugin = (Element) node;
+					
+					if (plugin.getTagName() == "save-format-parameters") {
+						saveFormatParameters = getParametersMapFromDOMElement(plugin);
+						csvDataSeparator = (String) saveFormatParameters.get("csv-separator");
+					}
+				}					
+			}
+			
+		} catch (SAXException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (ParserConfigurationException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		} catch (IOException e) {
+			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+		}
+		
+		return saveFormatParameters;
+	}
+
+	private Map<String,Object> getParametersMapFromDOMElement(Element plugin){
+
+		Map<String,Object> parameters = new TreeMap<>();
+		
+		NodeList pluginsParameters = plugin.getChildNodes();
+		for (int j = 0; j < pluginsParameters.getLength(); j++) {
+			Node parameterNode = pluginsParameters.item(j);
+
+			if (parameterNode.getChildNodes().getLength() == 1 && parameterNode instanceof Element){
+				Element parameter = (Element) parameterNode;
+				parameters.put(parameter.getTagName(), parameter.getTextContent());
+			}						
+		}
+		return parameters;
+	}
+
+	//Get plugin's names
+	@Override
+	public String getFunctionNameFromFile() {
+		return this.functionNameFromFile;
+	}
+
+	@Override
+	public String getErrorNameFromFile() {
+		return this.errorNameFromFile;
+	}
+
+	@Override
+	public String getGeneratorParametersNameFromFile() {
+		return this.generatorParametersNameFromFile;
+	}
 }

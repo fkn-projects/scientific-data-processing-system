@@ -134,8 +134,11 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			this.function = (DataGenerationFunction) clazz.newInstance();
-			
+			//!!!!!!!!!!!!!!!!!!!!!!!!!!
+			if(this.function == null){
+				this.function = (DataGenerationFunction) clazz.newInstance();
+			}
+			//!!!!!!!!!!!!!!!!!!!!!!!!!
 			functionFields = this.function.getParametersForRendering();
 		}
 		
@@ -153,8 +156,9 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			this.error = (MeasurementError) clazz.newInstance();
-			
+			if(this.error == null){
+				this.error = (MeasurementError) clazz.newInstance();
+			}
 			errorFields = this.error.getParametersForRendering();
 		}
 		
@@ -170,8 +174,11 @@ public class ReflectionObject {
 					
 			Class clazz = Class.forName(canonicalClassName);
 			
-			this.generatorParameters = (GeneratorParameters) clazz.newInstance();
-			
+			//--------------------------------------
+			if(this.generatorParameters == null){
+				this.generatorParameters = (GeneratorParameters) clazz.newInstance();
+			}
+			//-------------------------------------
 			genParamsFields = this.generatorParameters.getParametersForRendering();
 		}
 		

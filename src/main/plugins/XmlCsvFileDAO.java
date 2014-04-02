@@ -5,9 +5,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,11 +43,13 @@ public class XmlCsvFileDAO implements FileDAO {
 	
 	private Map<String, String> parametersNames = new HashMap<String, String>();
 	private List<String> csvSeparators = new ArrayList<>();
+	private String pathToGeneratedData;
+	
 	
 	public XmlCsvFileDAO() {
 
 		fileFormatName = "XML-CSV format";
-		parametersNames.put("CSV_separator", "String");
+		parametersNames.put("CSV_separator", ";");
 		
 		DecimalFormatSymbols dfs = new DecimalFormatSymbols();
 		char separator = dfs.getDecimalSeparator();
@@ -83,7 +87,7 @@ public class XmlCsvFileDAO implements FileDAO {
 			}
 			out.close();
 		} catch (IOException e) {
-			throw new RuntimeException("Невозможно записать данные в файл.");
+			throw new RuntimeException("Cann't write data to file");
 		}
 
 	}
@@ -92,13 +96,13 @@ public class XmlCsvFileDAO implements FileDAO {
 	public void saveParameters(Map<String, Map<String, String>> parameters,
 			String path) throws IOException {
 		BufferedWriter out;
-
-		File tempFile = new File(path);
-		path = path.replaceAll(tempFile.getName(), "parameters.xml");
+		
+		String dataPath = path;
+		path = path.replaceAll(".csv", ".xml");
 
 		try {
-			FileWriter fstream = new FileWriter(path);
-			out = new BufferedWriter(fstream);
+//			FileWriter fstream = new FileWriter(path);
+			out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path), "UTF-8"));
 			int lineCount = 0;
 
 			Map<String, String> functionParameters = parameters.get("function");
@@ -111,12 +115,12 @@ public class XmlCsvFileDAO implements FileDAO {
 			
 			Date d = new Date();
 			SimpleDateFormat dateFormat = new SimpleDateFormat(
-					"dd.MM.yyyy hh:mm");
+					"dd.MM.yyyy HH:mm");
+			
 
-			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+			out.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 			out.write("<parameters>");
 			out.write("\n");
-
 			out.write("\t<date>" + dateFormat.format(d) + "</date>\n");
 			
 			out.write("\t<function>\n");
@@ -137,8 +141,9 @@ public class XmlCsvFileDAO implements FileDAO {
 			out.write("\t<save-format-parameters>\n");
 			writeParameters(saveFormatParameters, out, lineCount);
 			out.write("\t</save-format-parameters>\n");
-
-			out.write("</parameters>");
+			out.write("<generator-data>"+ dataPath +"</generator-data>");
+			out.write("</parameters>\n");
+			
 			out.close();
 
 		} catch (IOException e) {
@@ -166,6 +171,16 @@ public class XmlCsvFileDAO implements FileDAO {
 	@Override
 	public Map<Double, Double> getData(File dataFile) throws IOException {
 		Map<Double, Double> result = new TreeMap<Double, Double>();
+		
+		if(dataFile == null){
+			if(!pathToGeneratedData.equals("")){
+				dataFile = new File(pathToGeneratedData);
+			} else{
+				throw new RuntimeException("Cann't open CSV file with data. File not found. \nPerhaps XML-file corrupted");
+			}
+		}
+		
+		
 		try {
 			BufferedReader br = new BufferedReader(new BufferedReader(
 					new FileReader(dataFile)));
@@ -177,12 +192,12 @@ public class XmlCsvFileDAO implements FileDAO {
 			}
 			br.close();
 		} catch (FileNotFoundException e) {
-			throw new FileNotFoundException("Exception - Error with file1");
+			throw new RuntimeException("Cann't get data from file. Data file is missing");
 		} catch (NumberFormatException e) {
-			//throw new RuntimeException("Невозможно преобразовать данные. Ошибка в CSV-файле");
-			e.printStackTrace();
+			throw new RuntimeException("Unable to convert the data. Error in the CSV-file");
+			//e.printStackTrace();
 		} catch (IOException e) {
-			throw new IOException("Exception - Error with file3");
+			throw new IOException("Cann't get data from file. Error with data file");
 		}
 		return result;
 	}
@@ -250,7 +265,7 @@ public class XmlCsvFileDAO implements FileDAO {
 	//Getting plugin's parameters
 	@Override
 	public Map<String, Object> getFunctionParameters(File parametersFile)
-			throws FileNotFoundException, IOException {
+			/*throws FileNotFoundException, IOException*/ {
 
 		Map<String, Object> functionParameters = new TreeMap<>();
 		
@@ -277,18 +292,18 @@ public class XmlCsvFileDAO implements FileDAO {
 			}
 			
 		} catch (SAXException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (ParserConfigurationException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (IOException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		}
 		
 		return functionParameters;
 	}
 	
 	@Override
-	public Map<String, Object> getErrorParameters(File parametersFile) throws IOException {
+	public Map<String, Object> getErrorParameters(File parametersFile) /*throws IOException */{
 		
 		Map<String, Object> errorParameters = new TreeMap<>();
 		
@@ -316,18 +331,18 @@ public class XmlCsvFileDAO implements FileDAO {
 			}
 			
 		} catch (SAXException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (ParserConfigurationException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (IOException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		}
 		
 		return errorParameters;
 	}
 	
 	@Override
-	public Map<String, Object> getGeneratorParameters(File parametersFile) throws IOException {
+	public Map<String, Object> getGeneratorParameters(File parametersFile) /*throws IOException*/ {
 
 		Map<String, Object> generatorParameters = new TreeMap<>();
 		
@@ -355,18 +370,18 @@ public class XmlCsvFileDAO implements FileDAO {
 			}
 			
 		} catch (SAXException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (IOException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (ParserConfigurationException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");	
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");	
 		}
 		
 		return generatorParameters;
 	}
 		
 	@Override
-	public Map<String, Object> getSaveFormatParameters(File parametersFile) throws IOException {
+	public Map<String, Object> getSaveFormatParameters(File parametersFile) /*throws IOException*/ {
 		
 		Map<String, Object> saveFormatParameters = new TreeMap<>();
 		
@@ -389,15 +404,22 @@ public class XmlCsvFileDAO implements FileDAO {
 						saveFormatParameters = getParametersMapFromDOMElement(plugin);
 						csvDataSeparator = (String) saveFormatParameters.get("csv-separator");
 					}
-				}					
+				} else if(node instanceof Element && node.getChildNodes().getLength() == 1){
+					Element pathNode = (Element) node;
+					if(pathNode.getTagName() == "generator-data"){
+						saveFormatParameters.put(pathNode.getTagName(), pathNode.getTextContent());
+						this.pathToGeneratedData = pathNode.getTextContent();
+					}
+					
+				}
 			}
 			
 		} catch (SAXException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (ParserConfigurationException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		} catch (IOException e) {
-			throw new RuntimeException("Невозможно преобразовать данные. Ошибка в XML-файле");
+			throw new RuntimeException("Unable to convert the data. Error in XML-file");
 		}
 		
 		return saveFormatParameters;
@@ -434,4 +456,8 @@ public class XmlCsvFileDAO implements FileDAO {
 	public String getGeneratorParametersNameFromFile() {
 		return this.generatorParametersNameFromFile;
 	}
+
+	
+	
+
 }

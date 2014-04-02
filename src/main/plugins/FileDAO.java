@@ -16,10 +16,10 @@ public interface FileDAO extends Parametrable {
 		
 		Map<Double, Double> getData(File dataFile) throws FileNotFoundException, IOException;
 		
-		Map<String,Object> getFunctionParameters(File parametersFile) throws IOException;
-		Map<String,Object> getErrorParameters(File parametersFile) throws IOException;
-		Map<String,Object> getGeneratorParameters(File parametersFile) throws IOException;
-		Map<String,Object> getSaveFormatParameters(File parametersFile) throws IOException;
+		Map<String,Object> getFunctionParameters(File parametersFile);// throws IOException;
+		Map<String,Object> getErrorParameters(File parametersFile);// throws IOException;
+		Map<String,Object> getGeneratorParameters(File parametersFile);// throws IOException;
+		Map<String,Object> getSaveFormatParameters(File parametersFile);// throws IOException;
 		
 	
 		String getFileFormatName();

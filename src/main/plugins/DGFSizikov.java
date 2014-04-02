@@ -7,9 +7,11 @@ public class DGFSizikov implements DataGenerationFunction {
 
 	private String functionName;
 	private Map<String, String> parameters = new TreeMap<>();
+
+	//@delete
+	private TreeMap<Double, TreeMap<Double, Double>> kMatrix = new TreeMap<>();
 	
 	private double Q;
-	private double dx;
 	
 	private double ds;
 	private double s0;
@@ -18,15 +20,17 @@ public class DGFSizikov implements DataGenerationFunction {
 	public DGFSizikov() {
 		this.functionName = "Sizikov Function";
 		
-		this.parameters.put("Q", "double");
-		this.parameters.put("s0", "double");
-		this.parameters.put("sn", "double");
-		this.parameters.put("ds", "double");
+		this.parameters.put("Q", "60");
+		this.parameters.put("s0", "-0.85");
+		this.parameters.put("sn", "0.85");
+		this.parameters.put("ds", "0.025");
 	}
 		
 	@Override
 	public boolean checkParameters() {
-		// TODO Auto-generated method stub
+		if(s0 > sn){
+			return false;
+		}
 		return true;
 	}
 
@@ -59,6 +63,9 @@ public class DGFSizikov implements DataGenerationFunction {
 		
 		if (tempObject instanceof Object){
 			this.Q = Double.parseDouble((String) parameters.get("Q"));
+			this.parameters.remove("Q");
+			this.parameters.put("Q", Double.toString(this.Q));
+			
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"Q\", please");
 		} else{
@@ -69,6 +76,8 @@ public class DGFSizikov implements DataGenerationFunction {
 		
 		if (tempObject instanceof Object){
 			this.s0 = Double.parseDouble((String) parameters.get("s0"));
+			this.parameters.remove("s0");
+			this.parameters.put("s0", Double.toString(this.s0));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"s0\", please");
 		} else{
@@ -79,6 +88,8 @@ public class DGFSizikov implements DataGenerationFunction {
 		
 		if (tempObject instanceof Object){
 			this.sn = Double.parseDouble((String) parameters.get("sn"));
+			this.parameters.remove("sn");
+			this.parameters.put("sn", Double.toString(this.sn));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"sn\", please");
 		} else{
@@ -89,12 +100,16 @@ public class DGFSizikov implements DataGenerationFunction {
 		
 		if (tempObject instanceof Object){
 			this.ds = Double.parseDouble((String) parameters.get("ds"));
+			this.parameters.remove("ds");
+			this.parameters.put("ds", Double.toString(this.ds));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"ds\", please");
 		} else{
 			throw new ClassCastException("Function parameter \"ds\" isn't valid");
 		}
 	}
+	
+	
 	
 	//f_i function
 	@Override
@@ -103,6 +118,9 @@ public class DGFSizikov implements DataGenerationFunction {
 		double sj = s0;
 		double pj = 0;
 
+		//@delete
+		TreeMap<Double, Double> matrixRow = new TreeMap<>();
+
 		for (int j = 0; j < (sn-s0) / ds; j++) {
 			
 			if(j == 0 || j == Math.ceil((sn - s0) / ds) - 1){
@@ -110,10 +128,18 @@ public class DGFSizikov implements DataGenerationFunction {
 			} else {
 				pj = ds;
 			}
+		
 			
-			fj = fj + pj * K (x, sj) * y (sj);
+			double k = K (x, sj);
+			//@delete
+			matrixRow.put(sj, k);
+			
+			fj = fj + pj * k * y (sj);
 			sj = sj + ds;
+	
 		}
+		//@delete
+		kMatrix.put(x, matrixRow);
 		return fj;
 	}
 	private double y (double s){
@@ -126,7 +152,12 @@ public class DGFSizikov implements DataGenerationFunction {
 	private double K (double x, double s){
 		double K = Math.sqrt(Q/Math.PI) * 
 				   Math.exp(-Q * Math.pow((x - s), 2) / (1 + Math.pow(x, 2)));
-		
 		return K;		
 	}
+	
+	//@delete
+	public TreeMap<Double, TreeMap<Double, Double>> getkMatrix() {
+		return kMatrix;
+	}
+	
 }

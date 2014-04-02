@@ -19,9 +19,9 @@ public class GPBeginStepEnd implements GeneratorParameters {
 	
 	public GPBeginStepEnd() {
 		pluginName = "Begin Step End";
-		parametersNames.put("begin", "double");
-		parametersNames.put("end", "double");
-		parametersNames.put("step", "double");
+		parametersNames.put("begin", "-1.05");
+		parametersNames.put("end", "1.05");
+		parametersNames.put("step", "0.01");
 	}
 
 	
@@ -92,6 +92,8 @@ public class GPBeginStepEnd implements GeneratorParameters {
 		if (tempObject instanceof Object ){
 			this.begin = Double.parseDouble((String) parameters.get("begin"));
 			this.runner = this.begin;
+			this.parametersNames.remove("begin");
+			this.parametersNames.put("begin", Double.toString(this.begin));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"begin\", please");
 		} else{
@@ -101,6 +103,8 @@ public class GPBeginStepEnd implements GeneratorParameters {
 		tempObject = parameters.get("end");
 		if (tempObject instanceof Object){
 			this.end = Double.parseDouble((String) parameters.get("end"));
+			this.parametersNames.remove("end");
+			this.parametersNames.put("end", Double.toString(this.end));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"end\", please");
 		} else{
@@ -110,6 +114,8 @@ public class GPBeginStepEnd implements GeneratorParameters {
 		tempObject = parameters.get("step");
 		if (tempObject instanceof Object){
 			this.step = Double.parseDouble((String) parameters.get("step"));
+			this.parametersNames.remove("step");
+			this.parametersNames.put("step", Double.toString(this.step));
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"step\", please");
 		} else{

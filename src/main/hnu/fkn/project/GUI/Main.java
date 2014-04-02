@@ -8,7 +8,9 @@ import java.awt.EventQueue;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,6 +78,8 @@ public class Main {
 	private JTable genParametersTable; 
 	private JTable saveParametersTable;
 	
+	
+	
 	private JLabel lblFunctionParameters;
 	private JLabel lblErrorParameters;
 	private JLabel lblGeneratorParameters;
@@ -102,6 +106,7 @@ public class Main {
 
 					Main window = new Main();
 					window.frame.setVisible(true);
+					window.frame.setTitle("Tikhonov Regularization - Generator");
 				} catch (Exception e) {
 					//System.out.println(e.getMessage());
 				}
@@ -116,7 +121,7 @@ public class Main {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setResizable(false);
-		frame.setBounds(100, 100, 644, 548);
+		frame.setBounds(100, 100, 630, 535);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		
@@ -199,27 +204,27 @@ public class Main {
 		btnNewButton.setBounds(140, 27, 61, 23);
 		save_panel.add(btnNewButton);
 		
-		JPanel panel_1 = new JPanel();
-		panel_1.setBorder(new LineBorder(Color.LIGHT_GRAY));
-		panel_1.setBounds(371, 398, 251, 106);
-		frame.getContentPane().add(panel_1);
-		panel_1.setLayout(null);
+		JPanel open_panel = new JPanel();
+		open_panel.setBorder(new LineBorder(Color.LIGHT_GRAY));
+		open_panel.setBounds(371, 398, 251, 106);
+		frame.getContentPane().add(open_panel);
+		open_panel.setLayout(null);
 		
 		JLabel lblNewLabel_1 = new JLabel("Select open file format");
 		lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 11));
 		lblNewLabel_1.setBounds(10, 8, 231, 14);
-		panel_1.add(lblNewLabel_1);
+		open_panel.add(lblNewLabel_1);
 		
 		JButton btnOpenFile = new JButton("Open File");
 		
 		btnOpenFile.setFont(new Font("Tahoma", Font.BOLD, 11));
 		btnOpenFile.setBounds(152, 27, 89, 23);
-		panel_1.add(btnOpenFile);
+		open_panel.add(btnOpenFile);
 		
 		openFileFormatComboBox = new JComboBox();
 		openFileFormatComboBox.setBounds(10, 28, 138, 21);
 		openFileFormatComboBox.addItem("Select ...");
-		panel_1.add(openFileFormatComboBox);
+		open_panel.add(openFileFormatComboBox);
 		
 		
 		
@@ -369,7 +374,7 @@ public class Main {
 							if(scrollPaneF.getHeight() < 80){
 								scrollPaneF.setSize(scrollPaneF.getWidth(), scrollPaneF.getHeight()+16);
 							} 
-							model.addRow(new Object[]{" "+parameters.getKey(), });					
+							model.addRow(new Object[]{" "+parameters.getKey(), Double.parseDouble(parameters.getValue())});					
 						}
 						panel.add(scrollPaneF);
 						panel.revalidate();
@@ -488,7 +493,7 @@ public class Main {
 							if(scrollPaneErr.getHeight() < 80){
 								scrollPaneErr.setSize(scrollPaneErr.getWidth(), scrollPaneErr.getHeight()+16);
 							} 
-							model.addRow(new Object[]{" "+parameters.getKey(), });					
+							model.addRow(new Object[]{" "+parameters.getKey(), Double.parseDouble(parameters.getValue())});					
 						}
 						
 						panel.add(scrollPaneErr);
@@ -602,7 +607,7 @@ public class Main {
 							if(scrollPaneGen.getHeight() < 80){
 								scrollPaneGen.setSize(scrollPaneGen.getWidth(), scrollPaneGen.getHeight()+16);
 							} 
-							model.addRow(new Object[]{" "+parameters.getKey(), });					
+							model.addRow(new Object[]{" "+parameters.getKey(), Double.parseDouble(parameters.getValue())});					
 						}
 						
 						panel.add(scrollPaneGen);
@@ -704,7 +709,7 @@ public class Main {
 								scrollPaneSave.setSize(scrollPaneSave.getWidth(), scrollPaneSave.getHeight()+17);
 							} 
 						
-							model.addRow(new Object[]{" "+parameters.getKey(), });					
+							model.addRow(new Object[]{" "+parameters.getKey(), parameters.getValue()});					
 
 							if(saveParameters.size()==1){
 								scrollPaneSave.setSize(scrollPaneSave.getWidth(), scrollPaneSave.getHeight()+17);
@@ -790,7 +795,8 @@ public class Main {
 				try{
 					openDataFile();
 				} catch (Exception ex){
-					MessageDialogWindow.showErrorWindow(ex.getMessage(), "Error Message", frame);
+					//MessageDialogWindow.showErrorWindow(ex.getMessage(), "Error Message", frame);
+					ex.printStackTrace();
 				}
 			}
 		});
@@ -821,12 +827,16 @@ public class Main {
 		
 		if(dataGenerator != null){
 		
+			Date d = new Date();
+			SimpleDateFormat dateFormat = new SimpleDateFormat(
+					"dd.MM.yyyy HH.mm");
+
 			JFileChooser fileChooser = new JFileChooser();
 			
 			FileFilter filter = new FileTypeFilter(dao.getDataFileFilterExtention(), dao.getDataFileFilterDescription());
 			fileChooser.addChoosableFileFilter(filter);
 			fileChooser.setFileFilter(filter);
-			fileChooser.setSelectedFile( new File("values" + dao.getDataFileFilterExtention()));
+			fileChooser.setSelectedFile( new File("generator["+ dateFormat.format(d) + "]" + dao.getDataFileFilterExtention()));
 			
 			
 			if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -868,8 +878,12 @@ public class Main {
 		//получаем объект функции-генеретора
 		Map<String, Object> functionParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < functionParametersTable.getModel().getRowCount(); count++) {
+			try{
 			functionParameters.put(functionParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
 									functionParametersTable.getModel().getValueAt(count, 1).toString());
+			} catch(NullPointerException ex){
+				throw new RuntimeException("Set function parameters, please");
+			}
 		}		
 		DataGenerationFunction dataGenerationFunction = reflection.getFunctionInstance(functionParameters);
 		
@@ -880,9 +894,13 @@ public class Main {
 		//получаем объект погрешности
 		Map<String, Object> errorParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < errorParametersTable.getModel().getRowCount(); count++) {
+			try{
 			errorParameters.put(errorParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
 									errorParametersTable.getModel().getValueAt(count, 1).toString());
-		}		
+			} catch(NullPointerException ex){
+				throw new RuntimeException("Set error parameters, please");
+			}			
+		}
 		MeasurementError measurementError = reflection.getMeasurementErrorInstance(errorParameters);
 		
 		if(!measurementError.checkParameters()){
@@ -892,8 +910,12 @@ public class Main {
 		//получаем объект параметров генератора
 		Map<String, Object> genParameters = new TreeMap<String, Object>();
 		for (int count = 0; count < genParametersTable.getModel().getRowCount(); count++) {
+			try{
 			genParameters.put( genParametersTable.getModel().getValueAt(count, 0).toString().replace(" ", ""), 
 								genParametersTable.getModel().getValueAt(count, 1).toString());
+			} catch(NullPointerException ex){
+				throw new RuntimeException("Set generator parameters, please");
+			}
 		}			
 		GeneratorParameters generatorParameters =  reflection.getGeneratorParametersInstance(genParameters);
 		if(!generatorParameters.checkParameters()){
@@ -936,27 +958,35 @@ public class Main {
 			Map<String, Object> generatorParametersFromFile = null;
 			Map<String, Object> saveFormatParametersFromFile = null;
 			
-			try {
-				functionParametersFromFile = dao.getFunctionParameters(file);
-				errorParametersFromFile = dao.getErrorParameters(file);
-				generatorParametersFromFile = dao.getGeneratorParameters(file);
-				saveFormatParametersFromFile = dao.getSaveFormatParameters(file);
 			
-			} catch (FileNotFoundException e) {
+			functionParametersFromFile = dao.getFunctionParameters(file);
+			errorParametersFromFile = dao.getErrorParameters(file);
+			generatorParametersFromFile = dao.getGeneratorParameters(file);
+			saveFormatParametersFromFile = dao.getSaveFormatParameters(file);
+		
+			
+			try {
+				reflection.loadFunctionFields(dao.getFunctionNameFromFile());
+				reflection.loadErrorFields(dao.getErrorNameFromFile());
+				reflection.loadGeneratorParamsFields(dao.getGeneratorParametersNameFromFile());
+			} catch (ClassNotFoundException e1) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
+				e1.printStackTrace();
+			} catch (NoSuchMethodException e1) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				e1.printStackTrace();
+			} catch (SecurityException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (InstantiationException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IllegalAccessException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 			
-
-			functionsComboBox.setSelectedItem(dao.getFunctionNameFromFile());
-			errorsComboBox.setSelectedItem(dao.getErrorNameFromFile());
-			genParamsComboBox.setSelectedItem(dao.getGeneratorParametersNameFromFile());
 			
-			
-		
 			DataGenerationFunction dataGenerationFunction = reflection.getFunctionInstance(functionParametersFromFile);
 			if(!dataGenerationFunction.checkParameters()){
 				throw new RuntimeException("Data generation function parameters is not valid. Please, choose correct parameters file!");
@@ -971,6 +1001,12 @@ public class Main {
 				throw new RuntimeException("Generator parameters is not valid. \nPlease, select correct parameters file!");
 			}
 		
+			
+			functionsComboBox.setSelectedItem(dao.getFunctionNameFromFile());
+			errorsComboBox.setSelectedItem(dao.getErrorNameFromFile());
+			genParamsComboBox.setSelectedItem(dao.getGeneratorParametersNameFromFile());
+
+			
 			//создаем генератор
 			dataGenerator = new DataGenerator(dataGenerationFunction, measurementError, generatorParameters);
 			dataGenerator.generateData();
@@ -980,15 +1016,14 @@ public class Main {
 			Map<Double, Double> dataForChart = null;
 			
 			try {
-				dataForChart = dao.getData(new File (file.getAbsolutePath().replaceAll("parameters", "values").replace("xml", "csv")));
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//path to dataFile is in the parameters XML-file
+				dataForChart = dao.getData(null);
+			}catch (FileNotFoundException e) {
+				throw new RuntimeException("Cann't get data from file. Data file is missing");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new RuntimeException("Cann't get data from file. Error with the data file");
 			}
-			
+		
 			
 			//строим график из полученных данных
 			buildChart(dataForChart, origDataForChart);
@@ -1016,6 +1051,8 @@ public class Main {
 	
 	private void buildChart(Map<Double, Double> dataForChart, Map<Double, Double> origDataForChart){
 	
+		chart_panel.removeAll();
+		
 		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 		DefaultCategoryDataset origDataset = new DefaultCategoryDataset();
 
@@ -1057,7 +1094,7 @@ public class Main {
 		
 		// create the chart...
         final JFreeChart chart = ChartFactory.createBarChart(
-            "Experimental data", // chart title
+            "", // chart title
             "", 		        // domain axis label
             "",           	   // range axis label
             origDataset,      // data
@@ -1076,7 +1113,7 @@ public class Main {
         
         final CategoryPlot plot = chart.getCategoryPlot();
         final CategoryItemRenderer renderer1 = plot.getRenderer();
-        renderer1.setSeriesPaint(0, Color.darkGray);
+        renderer1.setSeriesPaint(0, new Color(100, 180, 255));
         
         plot.getRangeAxis().setRange(min, max);
 
@@ -1092,11 +1129,11 @@ public class Main {
         
         
         final CategoryItemRenderer renderer2 = new LineAndShapeRenderer(2); 
-        renderer2.setSeriesPaint(0, Color.green);
+        renderer2.setSeriesPaint(0, new Color(16, 78, 139));
         
         plot.setRenderer(1, renderer2);
 
-        plot.setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
+        plot.setDatasetRenderingOrder(DatasetRenderingOrder.REVERSE);
    
         
 		ChartPanel chartPanel = new ChartPanel(chart);

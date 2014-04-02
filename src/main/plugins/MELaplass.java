@@ -19,9 +19,9 @@ public class MELaplass implements MeasurementError {
 	
 	public MELaplass() {
 		this.errorName = "Laplass Error";
-		this.parameters.put("Percent", "double");
-		this.parameters.put("Scale", "double");
-		this.parameters.put("Mean", "double");
+		this.parameters.put("Percent", "5");
+		this.parameters.put("Scale", "1");
+		this.parameters.put("Mean", "0");
 
 	}
 	 
@@ -30,6 +30,9 @@ public class MELaplass implements MeasurementError {
 		boolean valid = true;
 		if(this.mean < 0){
 			valid =  false;
+		}
+		if(percent < 0 || percent > 100){
+			valid = false;
 		}
 		return valid;
 	}
@@ -74,6 +77,10 @@ public class MELaplass implements MeasurementError {
 		Object tempObject = parameters.get("Mean");
 		if (tempObject instanceof Object){
 			this.mean = Double.parseDouble((String) parameters.get("Mean"));
+		
+			this.parameters.remove("Mean");
+			this.parameters.put("Mean", Double.toString(this.mean));
+		
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"Mean\", please");
 		} else{
@@ -83,6 +90,9 @@ public class MELaplass implements MeasurementError {
 		tempObject = parameters.get("Scale");
 		if (tempObject instanceof Object){
 			this.scale = Double.parseDouble((String) parameters.get("Scale"));
+			this.parameters.remove("Scale");
+			this.parameters.put("Scale", Double.toString(this.scale));
+		
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"Scale\", please");
 		} else{
@@ -92,6 +102,9 @@ public class MELaplass implements MeasurementError {
 		tempObject = parameters.get("Percent");
 		if (tempObject instanceof Object){
 			this.percent = Double.parseDouble((String) parameters.get("Percent"));
+			this.parameters.remove("Percent");
+			this.parameters.put("Percent", Double.toString(this.percent));
+		
 		} else if (tempObject == null){
 			throw new RuntimeException("Set parameter \"Percent\", please");
 		} else{

@@ -17,9 +17,9 @@ public class MEUniform implements MeasurementError {
 
 	public MEUniform() {
 		this.errorName = "Uniform Error";
-		this.parameters.put("A", "double");
-		this.parameters.put("B", "double");
-		this.parameters.put("Percent", "double");
+		this.parameters.put("A", "0");
+		this.parameters.put("B", "1");
+		this.parameters.put("Percent", "5");
 
 	}
 
@@ -40,6 +40,9 @@ public class MEUniform implements MeasurementError {
 		Object tempObject = parameters.get("A");
 		if (tempObject instanceof Object) {
 			this.a = Double.parseDouble((String) parameters.get("A"));
+			this.parameters.remove("A");
+			this.parameters.put("A", Double.toString(this.a));
+		
 		} else {
 			throw new ClassCastException(
 					"Measurement error parameter \"A\" isn't valid");
@@ -48,6 +51,9 @@ public class MEUniform implements MeasurementError {
 		tempObject = parameters.get("B");
 		if (tempObject instanceof Object) {
 			this.b = Double.parseDouble((String) parameters.get("B"));
+			this.parameters.remove("B");
+			this.parameters.put("B", Double.toString(this.b));
+		
 		} else {
 			throw new ClassCastException("Measurement error parameter \"B\" isn't valid");
 		}
@@ -55,6 +61,9 @@ public class MEUniform implements MeasurementError {
 		tempObject = parameters.get("Percent");
 		if (tempObject instanceof Object) {
 			this.percent = Double.parseDouble((String) parameters.get("Percent"));
+			this.parameters.remove("Percent");
+			this.parameters.put("Percent", Double.toString(this.percent));
+		
 		} else {
 			throw new ClassCastException("Measurement error parameter \"Percent\" isn't valid");
 		}
